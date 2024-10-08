@@ -1,0 +1,25 @@
+{
+  "title": "Here comes the bus",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Connect to here comes the bus",
+        "description": "Enter the Information Below.",
+        "data": {
+          "Username": "Username",
+          "Password": "Password",
+          "SchoolCode" : "SchoolCode"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Failed to connect to here comes the bus, check your input and try again.",
+      "invalid_auth": "Invalid authentication credentials.",
+      "unknown": "An unknown error occurred."
+    },
+    "success": {
+      "title": "Success",
+      "description": "Successfully connected to here comes the bus."
+    }
+  }
+}
