@@ -1,7 +1,7 @@
 import voluptuous as vol
 from homeassistant import config_entries
 import homeassistant.helpers.config_validation as cv
-from .hcb_api import GetSchoolInfo, GetUserInfo
+from .hcbapi.hcbapi import GetSchoolInfo, GetUserInfo
 from .const import DOMAIN
 
 
@@ -40,9 +40,9 @@ class HereComesTheBusConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         """Test connection to the Here Comes the Bus."""
         try:
             school = await GetSchoolInfo(schoolcode)
-            schoolId = school["Id"]
+            schoolId = school.customer.id
             userInfo = await GetUserInfo(schoolId, username, password)
-            userInfo["ParentId"]  # try to select the parent id to see if it works
+            _ = userInfo.account.id #the call failed and the data does not exist
             return True
         except Exception as e:
             return None  # Unable to connect

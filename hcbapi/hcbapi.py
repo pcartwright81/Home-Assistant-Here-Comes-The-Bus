@@ -1,25 +1,33 @@
+import aiohttp, xmltodict
 import aiohttp
-import untangle
-from datetime import datetime
 from xml.sax.saxutils import escape
+
+from config.custom_components.hcb_ha.hcbapi.S1158 import S1158, GetStudentStops
+from config.custom_components.hcb_ha.hcbapi.s1100 import (
+    S1100,
+    ValidateCustomerAccountNumber,
+)
+from config.custom_components.hcb_ha.hcbapi.s1157 import S1157, ParentLogin
 
 url = "https://api.synovia.com/SynoviaApi.svc"
 
+AM_ID = "6E7A050E-0295-4200-8EDC-3611BB5DE1C1"
+PM_ID = "55632A13-35C5-4169-B872-F5ABDC25DF6A"
 
-def GetSoapHeader():
+def GetSoapHeader() -> str:
     payload = '<?xml version="1.0" encoding="utf-8"?>'
     payload += '<soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">'
     payload += "<soap:Body>"
     return payload
 
 
-def GetSoapFooter():
+def GetSoapFooter() -> str:
     payload = "</soap:Body>"
     payload += "</soap:Envelope>"
     return payload
 
 
-def GetStandardHeaders():
+def GetStandardHeaders() -> str:
     return {
         "app-version": "3.6.0",
         "app-name": "hctb",
@@ -34,7 +42,7 @@ def GetStandardHeaders():
     }
 
 
-async def GetSchoolInfo(schoolCode):
+async def GetSchoolInfo(schoolCode: str) -> ValidateCustomerAccountNumber:
     payload = GetSoapHeader()
     payload += '<s1100 xmlns="http://tempuri.org/">'
     payload += "<P1>" + schoolCode + "</P1>"
@@ -44,15 +52,13 @@ async def GetSchoolInfo(schoolCode):
     headers["soapaction"] = "http://tempuri.org/ISynoviaApi/s1100"
     async with aiohttp.ClientSession() as session:
         async with session.post(url, data=payload, headers=headers) as response:
-            doc = untangle.parse(await response.text())
-            customerAccount = (
-                doc.s_Envelope.s_Body.s1100Response.s1100Result.SynoviaApi.ValidateCustomerAccountNumber
-            )
-            id = customerAccount.Customer["ID"]
-            return {"Id": id}
+            text = await response.text()
+            o = xmltodict.parse(text)
+            root = S1100.from_dict(o)
+            return root.s_envelope.s_body.s1100_response.s1100_result.synovia_api.validate_customer_account_number
 
 
-async def GetUserInfo(schoolId, username, password):
+async def GetUserInfo(schoolId: str, username: str, password: str) -> ParentLogin:
     payload = GetSoapHeader()
     payload += '<s1157 xmlns="http://tempuri.org/">'
     payload += "<P1>" + schoolId + "</P1>"
@@ -69,27 +75,21 @@ async def GetUserInfo(schoolId, username, password):
 
     async with aiohttp.ClientSession() as session:
         async with session.post(url, data=payload, headers=headers) as response:
-            doc = untangle.parse(await response.text())
-            login = doc.s_Envelope.s_Body.s1157Response.s1157Result.SynoviaApi.ParentLogin
-            parentId = login.Account["ID"]
-            students = [
-                {"StudentId": student["EntityID"], "FirstName": student["FirstName"]}
-                for student in login.LinkedStudents.Student
-            ]
-            return {"ParentId": parentId, "Students": students}
+            text = await response.text()
+            o = xmltodict.parse(text, force_list={"Student"})
+            root = S1157.from_dict(o)
+            return root.s_envelope.s_body.s1157_response.s1157_result.synovia_api.parent_login
 
 
-async def GetBusLocation(schoolId, parentId, studentId):
-    nw = datetime.now()
-    timeofDayId = "6E7A050E-0295-4200-8EDC-3611BB5DE1C1"  # default am
-    if nw.hour >= 12:
-        timeofDayId = "55632A13-35C5-4169-B872-F5ABDC25DF6A"  # pm
+async def GetBusLocation(
+    schoolId: str, parentId: str, studentId: str, timeOfDayId: str
+) -> GetStudentStops:
     payload = GetSoapHeader()
     payload += '<s1158 xmlns="http://tempuri.org/">'
     payload += "<P1>" + schoolId + "</P1>"
     payload += "<P2>" + parentId + "</P2>"
     payload += "<P3>" + studentId + "</P3>"
-    payload += "<P4>" + timeofDayId + "</P4>"
+    payload += "<P4>" + timeOfDayId + "</P4>"
     payload += "<P5>true</P5>"
     payload += "<P6>false</P6>"
     payload += "<P7>10</P7>"
@@ -101,22 +101,7 @@ async def GetBusLocation(schoolId, parentId, studentId):
     headers["soapaction"] = "http://tempuri.org/ISynoviaApi/s1158"
     async with aiohttp.ClientSession() as session:
         async with session.post(url, data=payload, headers=headers) as response:
-            respText = await response.text()
-            data =  {
-                "Name": "",
-                "Latitude": "",
-                "Longitude": "",
-                "Address": "",
-                "Status": "Out of Service",
-            }         
-            if "VehicleLocation" not in respText:
-                return data
-            doc = untangle.parse(respText)
-            vehicleLocation = (
-                doc.s_Envelope.s_Body.s1158Response.s1158Result.SynoviaApi.GetStudentStopsAndScans.GetStudentStops.VehicleLocation
-            )
-            data["Name"] = vehicleLocation["Name"]
-            data["Latitude"] = vehicleLocation["Latitude"]
-            data["Longitude"] = vehicleLocation["Longitude"]
-            data["Address"] = vehicleLocation["Address"]
-            return data
+            text = await response.text()
+            o = xmltodict.parse(text)
+            root = S1158.from_dict(o)
+            return root.s_envelope.s_body.s1158_response.s1158_result.synovia_api.get_student_stops_and_scans.get_student_stops
