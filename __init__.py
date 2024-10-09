@@ -1,4 +1,5 @@
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from datetime import timedelta
@@ -6,6 +7,7 @@ import logging
 from .const import DOMAIN
 from .hcb_api import GetUserInfo, GetSchoolInfo, GetBusLocation
 
+PLATFORMS = [Platform.DEVICE_TRACKER]
 _LOGGER = logging.getLogger(__name__)
 
 
@@ -15,7 +17,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = coordinator
     hass.async_create_task(
-        hass.config_entries.async_forward_entry_setup(entry, "sensor")
+        hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     )
     return True
 
@@ -47,12 +49,20 @@ class HCBDataCoordinator(DataUpdateCoordinator):
             vechicleLocation = await GetBusLocation(schoolId, parentId, studentId)
             newMessage = {
                 "StudentId": studentId,
-                "FirstName": firstName,
+                "StudentName": firstName,
                 "Status": vechicleLocation["Status"],
                 "Address": vechicleLocation["Address"],
                 "Latitude": vechicleLocation["Latitude"],
                 "Longitude": vechicleLocation["Longitude"],
-                "Name": vechicleLocation["Name"],
+                "BusName": vechicleLocation["Name"],
             }
             messages.append(newMessage)
         return messages
+
+
+async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    """Unload a config entry."""
+    # This is called when an entry/configured device is to be removed. The class
+    # needs to unload itself, and remove callbacks. See the classes for further
+    # details
+    return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
