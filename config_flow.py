@@ -42,7 +42,7 @@ class HereComesTheBusConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             school = await GetSchoolInfo(schoolcode)
             schoolId = school.customer.id
             userInfo = await GetUserInfo(schoolId, username, password)
-            _ = userInfo.account.id #the call failed and the data does not exist
+            _ = userInfo.account.id #the call failed
             return True
         except Exception as e:
             return None  # Unable to connect

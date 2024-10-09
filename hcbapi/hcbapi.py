@@ -2,12 +2,12 @@ import aiohttp, xmltodict
 import aiohttp
 from xml.sax.saxutils import escape
 
-from config.custom_components.hcb_ha.hcbapi.S1158 import S1158, GetStudentStops
-from config.custom_components.hcb_ha.hcbapi.s1100 import (
+from .S1158 import S1158, GetStudentStops
+from .s1100 import (
     S1100,
     ValidateCustomerAccountNumber,
 )
-from config.custom_components.hcb_ha.hcbapi.s1157 import S1157, ParentLogin
+from .s1157 import S1157, ParentLogin
 
 url = "https://api.synovia.com/SynoviaApi.svc"
 
