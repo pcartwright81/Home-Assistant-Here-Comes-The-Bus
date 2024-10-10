@@ -139,6 +139,8 @@ class StudentStops:
 
     @staticmethod
     def from_dict(obj: Any) -> "StudentStops":
+        if(obj is None):
+            return None
         assert isinstance(obj, dict)
         student_stop = from_list(StudentStop.from_dict, obj.get("StudentStop"))
         return StudentStops(student_stop)
@@ -195,6 +197,8 @@ class VehicleLocation:
 
     @staticmethod
     def from_dict(obj: Any) -> "VehicleLocation":
+        if(obj is None):
+            return None
         assert isinstance(obj, dict)
         name = from_str(obj.get("@Name"))
         latitude = from_str(obj.get("@Latitude"))
