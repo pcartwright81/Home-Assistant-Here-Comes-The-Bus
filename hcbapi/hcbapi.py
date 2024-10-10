@@ -2,7 +2,7 @@ import aiohttp, xmltodict
 import aiohttp
 from xml.sax.saxutils import escape
 
-from .S1158 import S1158, GetStudentStops
+from .s1158 import S1158, GetStudentStops
 from .s1100 import (
     S1100,
     ValidateCustomerAccountNumber,
