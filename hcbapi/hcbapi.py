@@ -1,5 +1,4 @@
 import aiohttp, xmltodict
-import aiohttp
 from xml.sax.saxutils import escape
 
 from .s1158 import S1158, GetStudentStops

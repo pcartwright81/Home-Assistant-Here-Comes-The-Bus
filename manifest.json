@@ -4,7 +4,7 @@
   "codeowners": ["@pcartwright81"],
   "config_flow": true,
   "version": "0.1.0",
-  "requirements": ["aiohttp", "untangle"],
+  "requirements": ["aiohttp", "xmltodict"],
   "dependencies": [],
   "iot_class": "cloud_polling",
   "documentation": "https://github.com/pcartwright81/HCB-HomeAssistant",
