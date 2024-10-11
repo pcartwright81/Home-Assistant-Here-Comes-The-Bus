@@ -1,76 +1,130 @@
-from .hcbapi.hcbapi import GetUserInfo, GetSchoolInfo, GetBusLocation, AM_ID, PM_ID
-from .const import DOMAIN
-from datetime import datetime, timedelta
+"""Coordinator file for Here comes the bus Home assistant integration."""
+
+from datetime import datetime, time, timedelta
 import logging
-from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
+
+from config.custom_components.hcb_ha.hcbapi.s1157 import Student
+from config.custom_components.hcb_ha.hcbapi.s1158 import VehicleLocation
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.core import HomeAssistant
+from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
+from homeassistant.util import dt as dt_util
+
+from .hcbapi.hcbapi import AM_ID, PM_ID, get_bus_info, get_parent_info, get_school_info
 
 _LOGGER = logging.getLogger(__name__)
 
 
 class HCBDataCoordinator(DataUpdateCoordinator):
-    def __init__(self, hass, config):
-        self.config = config
-        self.schoolId = None
-        self.parentId = None
-        self.studentId = None
-        self.students = None
-        self.initialized = 0
+    """Define a data coordinator."""
+
+    def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
+        """Initialize the coordinator."""
         super().__init__(
-            hass, _LOGGER, name=DOMAIN, update_interval=timedelta(seconds=15)
+            hass,
+            _LOGGER,
+            # Name of the data. For logging purposes.
+            name="HCB Tracker",
+            # Polling interval. Will only be polled if there are subscribers.
+            update_interval=timedelta(seconds=15),
+            # Set always_update to `False` if the data returned from the
+            # api can be compared via `__eq__` to avoid duplicate updates
+            # being dispatched to listeners
+            always_update=False,
         )
+        self.config = entry
+        self._school_id: str
+        self._parent_id: str
+        self._students = []
+        self._am_start_time = time(12, 0, 0)
+        self._pm_start_time = time(19, 0, 0)
+        self._initialized: bool = 0
+        self._current_day: int = 0
+        self._am_stops_done: bool = 0
+        self._pm_stops_done: bool = 0
+        self._done_for_day: bool = 0
 
-    async def _async_setup(self):
-        school = await GetSchoolInfo(self.config["SchoolCode"])
-        self.schoolId = school.customer.id
-        userInfo = await GetUserInfo(
-            self.schoolId, self.config["Username"], self.config["Password"]
+    async def _async_setup(self) -> None:
+        school = await get_school_info(self.config["SchoolCode"])
+        self._school_id = school.customer.id
+        userInfo = await get_parent_info(
+            self._school_id, self.config["Username"], self.config["Password"]
         )
-        self.parentId = userInfo.account.id
-        self.students = userInfo.linked_students.student
+        self._parent_id = userInfo.account.id
+        self._students = userInfo.linked_students.student
+        for student in self._students:
+            am_stops_and_scans = await get_bus_info(
+                self._school_id, self._parent_id, student.entity_id, AM_ID
+            )
+            pm_stops_and_scans = await get_bus_info(
+                self._school_id, self._parent_id, student.entity_id, PM_ID
+            )
+            self._am_start_time = min(
+                am_stops_and_scans.student_stops.student_stop[0].tier_start_time.time(),
+                self._am_start_time,
+            )
+            self._pm_start_time = min(
+                pm_stops_and_scans.student_stops.student_stop[0].tier_start_time.time(),
+                self._pm_start_time,
+            )
 
-    async def _async_update_data(self):
-        data = await self.fetch_data()
-        if data is None:
-            raise UpdateFailed("Failed to fetch data from Here Comes the Bus.")
+    async def _async_update_data(self) -> None:
+        time_now = dt_util.now()  # local time
+        time_of_day_id = AM_ID
+        if time_now.hour >= 12:
+            time_of_day_id = PM_ID
+
+        if not self._should_poll_data(time_now):
+            return None
+
+        data = []
+        stops = []
+        for student in self._students:
+            student_stops = await get_bus_info(
+                self._school_id, self._parent_id, student.entity_id, time_of_day_id
+            )
+
+            if student_stops.student_stops is None: #reset happens at 11 cst which is a new day for est
+                self._pm_stops_done = 1
+                return None
+
+
+            data.append(DataUpdateEntity(student, student_stops.vehicle_location))
+            stops.extend(
+                stop.arrival_time for stop in student_stops.student_stops.student_stop
+            )
+
+        self._set_stops_completed(time_now, stops)
+        self._initialized = 1
         return data
 
-    async def fetch_data(self):
-        nw = datetime.now()
-        timeofDayId = AM_ID
-        if nw.hour > 12:
-            timeofDayId = PM_ID
+    def _set_stops_completed(self, time_now, stops):
+        stopsdone = all(item is not None for item in stops)
+        if time_now.hour < 12:
+            self._am_stops_done = stopsdone
+        else:
+            self._pm_stops_done = stopsdone
+            if(self._pm_stops_done):
+                self._current_day = time_now.day
 
-        if self.initialized:
-            if nw.hour < 5:
-                return []
-            if nw.hour > 8 and nw.hour < 14:
-                return []
-            if nw.hour > 16:
-                return []
+    def _should_poll_data(self, time_now: datetime) -> bool:
+        if not self._initialized: # not initialized
+            return 1
+        if time_now.weekday() >= 5: #it's the weekend
+            return 0
+        if time_now.time() < self._am_start_time: #it's too early am
+            return 0
+        if time_now.time() < self._pm_start_time: #it's too realy pm
+            return 0
+        if self._current_day == time_now.day: #same day do more logic
+           if time_now.hour < 12 and self._am_stops_done:
+              return 0
+        return not self._pm_stops_done
 
-        messages = []
-        for student in self.students:
-            stops = await GetBusLocation(
-                self.schoolId, self.parentId, student.entity_id, timeofDayId
-            )
-            vehicleLocation = stops.vehicle_location
-            newMessage = {
-                "StudentId": student.entity_id,
-                "StudentName": student.first_name,
-                "Status": None,
-                "Address": None,
-                "Latitude": None,
-                "Longitude": None,
-                "DisplayOnMap": None,
-                "BusName": None,
-            }
-            if vehicleLocation is not None:
-                newMessage["Status"] = vehicleLocation.message_code
-                newMessage["Address"] = vehicleLocation.address
-                newMessage["Latitude"] = vehicleLocation.latitude
-                newMessage["Longitude"] = vehicleLocation.longitude
-                newMessage["DisplayOnMap"] = vehicleLocation.display_on_map
-                newMessage["BusName"] = vehicleLocation.name
-            messages.append(newMessage)
-        self.initialized = 1
-        return messages
+class DataUpdateEntity:
+    """Define a data update entity."""
+
+    def __init__(self, student: Student, vehicle_location: VehicleLocation) -> None:
+        """Initialize the data update entity."""
+        self.student = student
+        self.vehiclelocation = vehicle_location

@@ -1,58 +1,45 @@
+"""Define a device tracker."""
+
 from homeassistant.components.device_tracker import TrackerEntity
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
+
 from .const import DOMAIN
-from homeassistant.core import callback
+from .coordinator import DataUpdateEntity
 
 
-async def async_setup_entry(hass, entry, async_add_entities):
-    """Set up Student Sensors."""
-    coordinator = hass.data[DOMAIN][entry.entry_id]
+async def async_setup_entry(
+    hass: HomeAssistant, entry: ConfigEntry, async_add_entities
+):
+    """Set up bus sensors."""
+    coordinator = hass.data[entry.entry_id]
     async_add_entities(
         HCBTracker(coordinator, idx, ent) for idx, ent in enumerate(coordinator.data)
     )
 
 
-# todo data keys should be an id, but it will not let me
 class HCBTracker(CoordinatorEntity, TrackerEntity):
-    """Defines a single HCB sensor."""
+    """Defines a single bus sensor."""
 
-    def __init__(self, coordinator, idx, student):
+    def __init__(self, coordinator, idx, data: DataUpdateEntity) -> None:
         """Pass coordinator to CoordinatorEntity."""
         super().__init__(coordinator, context=idx)
-        self._student = student
+        self.name = data.student.first_name + " Bus"
         self.idx = idx
+        self.unique_id = data.student.first_name.lower() + "_bus"
+        self._attr_bus_name: str
+        self._update_atributes(data)
 
-    @property
-    def latitude(self):
-        return self._student["Latitude"]
-
-    @property
-    def longitude(self):
-        return self._student["Longitude"]
-
-    @property
-    def location_name(self):
-        return self._student["Address"]
-
-    @property
-    def unique_id(self):
-        """Return the unique ID."""
-        return self._student["StudentName"].lower() + "_bus"
-
-    @property
-    def name(self):
-        """Return the name."""
-        return self._student["StudentName"] + " Bus"
-
-    @property
-    def status(self):
-        """Return the name."""
-        return self._student["Status"]
+    def _update_atributes(self, data):
+        if data.vehiclelocation is not None:
+            self._attr_latitude = data.vehiclelocation.latitude
+            self._attr_longitude = data.vehiclelocation.longitude
+            self._attr_bus_name = data.vehiclelocation.name
 
     @callback
-    def _handle_coordinator_update(self) -> None:
-        if len(self.coordinator.data) == 0:
-            return
+    def _handle_coordinator_update(self):
         """Handle updated data from the coordinator."""
-        self._student = self.coordinator.data[self.idx]
+        data = self.coordinator.data[self.idx]
+        self._update_atributes(data)
         self.async_write_ha_state()

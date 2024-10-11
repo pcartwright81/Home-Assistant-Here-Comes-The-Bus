@@ -1,8 +1,12 @@
+"""Config file for Here comes the bus Home assistant integration."""
+
 import voluptuous as vol
+
 from homeassistant import config_entries
 import homeassistant.helpers.config_validation as cv
-from .hcbapi.hcbapi import GetSchoolInfo, GetUserInfo
+
 from .const import DOMAIN
+from .hcbapi.hcbapi import get_parent_info, get_school_info
 
 
 class HereComesTheBusConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
@@ -22,8 +26,7 @@ class HereComesTheBusConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 return self.async_create_entry(
                     title="Here Comes The Bus", data=user_input
                 )
-            else:
-                errors["base"] = "cannot_connect"
+            errors["base"] = "cannot_connect"
         return self.async_show_form(
             step_id="user",
             data_schema=vol.Schema(
@@ -36,13 +39,13 @@ class HereComesTheBusConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             errors=errors,
         )
 
-    async def _test_connection(self, username, password, schoolcode):
+    async def _test_connection(self, username, password, school_code):
         """Test connection to the Here Comes the Bus."""
         try:
-            school = await GetSchoolInfo(schoolcode)
-            schoolId = school.customer.id
-            userInfo = await GetUserInfo(schoolId, username, password)
-            _ = userInfo.account.id #the call failed
-            return True
-        except Exception as e:
+            school = await get_school_info(school_code)
+            school_id = school.customer.id
+            userInfo = await get_parent_info(school_id, username, password)
+        except Exception:  # noqa: BLE001 don't feel like changing this
             return None  # Unable to connect
+        else:
+             return userInfo is not None
