@@ -10,6 +10,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from homeassistant.util import dt as dt_util
 
+from .const import DOMAIN
 from .hcbapi.hcbapi import AM_ID, PM_ID, get_bus_info, get_parent_info, get_school_info
 
 _LOGGER = logging.getLogger(__name__)
@@ -24,7 +25,7 @@ class HCBDataCoordinator(DataUpdateCoordinator):
             hass,
             _LOGGER,
             # Name of the data. For logging purposes.
-            name="HCB Tracker",
+            name=DOMAIN,
             # Polling interval. Will only be polled if there are subscribers.
             update_interval=timedelta(seconds=15),
             # Set always_update to `False` if the data returned from the
@@ -32,19 +33,20 @@ class HCBDataCoordinator(DataUpdateCoordinator):
             # being dispatched to listeners
             always_update=False,
         )
-        self.config = entry
+        self.config = entry.data
         self._school_id: str
         self._parent_id: str
-        self._students = []
-        self._am_start_time = time(12, 0, 0)
-        self._pm_start_time = time(19, 0, 0)
-        self._initialized: bool = 0
-        self._current_day: int = 0
-        self._am_stops_done: bool = 0
-        self._pm_stops_done: bool = 0
-        self._done_for_day: bool = 0
+        self._students: list[Student]
+        self._am_start_time: time = time(5, 0, 0)
+        self._pm_start_time: time = time(14, 0, 0)
+        self._initialized: bool
+        self._current_day: int
+        self._am_stops_done: bool
+        self._pm_stops_done: bool
+        self._done_for_day: bool
 
-    async def _async_setup(self) -> None:
+    async def async_config_entry_first_refresh(self) -> None:
+        """Handle the first refresh."""
         school = await get_school_info(self.config["SchoolCode"])
         self._school_id = school.customer.id
         userInfo = await get_parent_info(
@@ -52,6 +54,8 @@ class HCBDataCoordinator(DataUpdateCoordinator):
         )
         self._parent_id = userInfo.account.id
         self._students = userInfo.linked_students.student
+        self.data = []
+        self.data.extend(DataUpdateEntity(student, None) for student in self._students)
         for student in self._students:
             am_stops_and_scans = await get_bus_info(
                 self._school_id, self._parent_id, student.entity_id, AM_ID
@@ -59,6 +63,8 @@ class HCBDataCoordinator(DataUpdateCoordinator):
             pm_stops_and_scans = await get_bus_info(
                 self._school_id, self._parent_id, student.entity_id, PM_ID
             )
+            if am_stops_and_scans.student_stops is None:
+                return
             self._am_start_time = min(
                 am_stops_and_scans.student_stops.student_stop[0].tier_start_time.time(),
                 self._am_start_time,
@@ -84,10 +90,8 @@ class HCBDataCoordinator(DataUpdateCoordinator):
                 self._school_id, self._parent_id, student.entity_id, time_of_day_id
             )
 
-            if student_stops.student_stops is None: #reset happens at 11 cst which is a new day for est
-                self._pm_stops_done = 1
+            if student_stops.student_stops is None:
                 return None
-
 
             data.append(DataUpdateEntity(student, student_stops.vehicle_location))
             stops.extend(
@@ -95,7 +99,6 @@ class HCBDataCoordinator(DataUpdateCoordinator):
             )
 
         self._set_stops_completed(time_now, stops)
-        self._initialized = 1
         return data
 
     def _set_stops_completed(self, time_now, stops):
@@ -104,22 +107,21 @@ class HCBDataCoordinator(DataUpdateCoordinator):
             self._am_stops_done = stopsdone
         else:
             self._pm_stops_done = stopsdone
-            if(self._pm_stops_done):
+            if self._pm_stops_done:
                 self._current_day = time_now.day
 
     def _should_poll_data(self, time_now: datetime) -> bool:
-        if not self._initialized: # not initialized
-            return 1
-        if time_now.weekday() >= 5: #it's the weekend
+        if time_now.weekday() >= 5:  # it's the weekend
             return 0
-        if time_now.time() < self._am_start_time: #it's too early am
+        if time_now.time() < self._am_start_time:  # it's too early am
             return 0
-        if time_now.time() < self._pm_start_time: #it's too realy pm
+        if time_now.time() < self._pm_start_time:  # it's too realy pm
             return 0
-        if self._current_day == time_now.day: #same day do more logic
-           if time_now.hour < 12 and self._am_stops_done:
-              return 0
+        if self._current_day == time_now.day:  # same day do more logic
+            if time_now.hour < 12 and self._am_stops_done:
+                return 0
         return not self._pm_stops_done
+
 
 class DataUpdateEntity:
     """Define a data update entity."""
