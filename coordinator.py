@@ -3,8 +3,6 @@
 from datetime import datetime, time, timedelta
 import logging
 
-from config.custom_components.hcb_ha.hcbapi.s1157 import Student
-from config.custom_components.hcb_ha.hcbapi.s1158 import VehicleLocation
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
@@ -12,6 +10,8 @@ from homeassistant.util import dt as dt_util
 
 from .const import DOMAIN
 from .hcbapi.hcbapi import AM_ID, PM_ID, get_bus_info, get_parent_info, get_school_info
+from .hcbapi.hcbapi.s1157 import Student
+from .hcbapi.hcbapi.s1158 import VehicleLocation
 
 _LOGGER = logging.getLogger(__name__)
 
