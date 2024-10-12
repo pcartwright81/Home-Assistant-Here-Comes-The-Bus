@@ -6,7 +6,7 @@ from homeassistant.core import HomeAssistant
 
 from .coordinator import HCBDataCoordinator
 
-PLATFORMS = [Platform.DEVICE_TRACKER]
+PLATFORMS = [Platform.DEVICE_TRACKER, Platform.SENSOR]
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:

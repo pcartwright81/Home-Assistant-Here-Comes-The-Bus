@@ -5,11 +5,11 @@ import voluptuous as vol
 from homeassistant import config_entries
 import homeassistant.helpers.config_validation as cv
 
-from .const import DOMAIN
-from .hcbapi.hcbapi import get_parent_info, get_school_info
+from .const import Const
+from .hcbapi import hcbapi
 
 
-class HereComesTheBusConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
+class HereComesTheBusConfigFlow(config_entries.ConfigFlow, domain=Const.DOMAIN):
     """Handle a config flow for Here Comes The Bus."""
 
     VERSION = 1
@@ -19,7 +19,7 @@ class HereComesTheBusConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         errors = {}
 
         if user_input is not None:
-            valid = await self._test_connection(
+            valid = await hcbapi.test_connection(
                 user_input["Username"], user_input["Password"], user_input["SchoolCode"]
             )
             if valid:
@@ -38,14 +38,3 @@ class HereComesTheBusConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             ),
             errors=errors,
         )
-
-    async def _test_connection(self, username, password, school_code):
-        """Test connection to the Here Comes the Bus."""
-        try:
-            school = await get_school_info(school_code)
-            school_id = school.customer.id
-            userInfo = await get_parent_info(school_id, username, password)
-        except Exception:  # noqa: BLE001 don't feel like changing this
-            return None  # Unable to connect
-        else:
-             return userInfo is not None

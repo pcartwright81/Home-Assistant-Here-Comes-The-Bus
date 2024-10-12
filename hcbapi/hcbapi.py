@@ -1,12 +1,9 @@
-import aiohttp, xmltodict
 from xml.sax.saxutils import escape
 
-from .s1158 import S1158, GetStudentStops
-from .s1100 import (
-    S1100,
-    ValidateCustomerAccountNumber,
-)
-from .s1157 import S1157, ParentLogin
+import aiohttp
+import xmltodict
+
+from . import s1100, s1157, s1158
 
 _url = "https://api.synovia.com/SynoviaApi.svc"
 
@@ -45,7 +42,7 @@ def _get_standard_headers() -> str:
     }
 
 
-async def get_school_info(schoolCode: str) -> ValidateCustomerAccountNumber:
+async def get_school_info(schoolCode: str) -> s1100.ValidateCustomerAccountNumber:
     """Return the school info from the api."""
     payload = _get_soap_header()
     payload += '<s1100 xmlns="http://tempuri.org/">'
@@ -58,13 +55,14 @@ async def get_school_info(schoolCode: str) -> ValidateCustomerAccountNumber:
         aiohttp.ClientSession() as session,
         session.post(_url, data=payload, headers=headers) as response,
     ):
+        if response.status != 200:
+            return None
         text = await response.text()
-        o = xmltodict.parse(text)
-        root = S1100.from_dict(o)
+        root = s1100.S1100.from_dict(xmltodict.parse(text))
         return root.s_envelope.s_body.s1100_response.s1100_result.synovia_api.validate_customer_account_number
 
 
-async def get_parent_info(schoolId: str, username: str, password: str) -> ParentLogin:
+async def get_parent_info(schoolId: str, username: str, password: str) -> s1157.ParentLogin:
     """Return the user info from the api."""
     payload = _get_soap_header()
     payload += '<s1157 xmlns="http://tempuri.org/">'
@@ -84,9 +82,10 @@ async def get_parent_info(schoolId: str, username: str, password: str) -> Parent
         aiohttp.ClientSession() as session,
         session.post(_url, data=payload, headers=headers) as response,
     ):
+        if response.status != 200:
+            return None
         text = await response.text()
-        o = xmltodict.parse(text, force_list={"Student"})
-        root = S1157.from_dict(o)
+        root = s1157.S1157.from_dict(xmltodict.parse(text, force_list={"Student"}))
         return (
             root.s_envelope.s_body.s1157_response.s1157_result.synovia_api.parent_login
         )
@@ -94,7 +93,7 @@ async def get_parent_info(schoolId: str, username: str, password: str) -> Parent
 
 async def get_bus_info(
     schoolId: str, parentId: str, studentId: str, timeOfDayId: str
-) -> GetStudentStops:
+) -> s1158.GetStudentStops:
     """Return the bus info from the api."""
     payload = _get_soap_header()
     payload += '<s1158 xmlns="http://tempuri.org/">'
@@ -115,7 +114,16 @@ async def get_bus_info(
         aiohttp.ClientSession() as session,
         session.post(_url, data=payload, headers=headers) as response,
     ):
+        if response.status != 200:
+            return None
         text = await response.text()
-        o = xmltodict.parse(text)
-        root = S1158.from_dict(o)
+        root = s1158.S1158.from_dict(xmltodict.parse(text))
         return root.s_envelope.s_body.s1158_response.s1158_result.synovia_api.get_student_stops_and_scans.get_student_stops
+
+
+async def test_connection(school_code: str, user_name: str, password: str) -> bool:
+    """Test the connection to the api."""
+    school = await get_school_info(school_code)
+    school_id = school.customer.id
+    userInfo = await get_parent_info(school_id, user_name, password)
+    return userInfo is not None
