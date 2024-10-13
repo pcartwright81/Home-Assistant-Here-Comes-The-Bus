@@ -3,7 +3,6 @@
 from datetime import datetime, time, timedelta
 import logging
 
-from config.custom_components.hcb_ha.hcbapi.s1157 import Student
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
@@ -12,6 +11,7 @@ from homeassistant.util import dt as dt_util
 from .const import Const
 from .data_update_entity import DataUpdateEntity
 from .hcbapi import hcbapi
+from .hcbapi.s1157 import Student
 
 _LOGGER = logging.getLogger(__name__)
 STUDENT_INFO = "student_info"
