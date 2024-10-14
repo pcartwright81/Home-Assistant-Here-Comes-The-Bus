@@ -37,6 +37,8 @@ async def async_setup_entry(
                 HCBSensor(coordinator, student_id, Const.ATTR_LONGITUDE),
                 HCBSensor(coordinator, student_id, Const.ATTR_ADDRESS),
                 HCBSensor(coordinator, student_id, Const.ATTR_HEADING),
+                HCBSensor(coordinator, student_id, Const.ATTR_AM_SCHOOL_ARRIVAL_TIME),
+                HCBSensor(coordinator, student_id, Const.ATTR_PM_STOP_ARRIVAL_TIME),
             ]
         )
 
@@ -69,15 +71,10 @@ class DataUpdater:
                 return data.log_time
             case Const.ATTR_HEADING:
                 return data.heading
-            case Const.ATTR_AM_STOP_ARRIVAL_TIME:
-                return data.am_stop_arrival_time
             case Const.ATTR_AM_SCHOOL_ARRIVAL_TIME:
                 return data.am_school_arrival_time
             case Const.ATTR_PM_STOP_ARRIVAL_TIME:
                 return data.pm_stop_arrival_time
-            case Const.ATTR_PM_SCHOOL_ARRIVAL_TIME:
-                return data.pm_school_arrival_time
-
 
 class HCBSensor(CoordinatorEntity, SensorEntity):
     """Defines a single bus sensor."""
@@ -106,7 +103,7 @@ class HCBSensor(CoordinatorEntity, SensorEntity):
     @property
     def native_value(self) -> StateType:
         """Return the value reported by the sensor."""
-        return
+        return self._sensor_data
 
     @callback
     def _handle_coordinator_update(self):
@@ -130,9 +127,7 @@ class HCBBinarySensor(CoordinatorEntity, BinarySensorEntity):
 
         self.name = data.first_name + " Bus" + " " + attribute_name
         self.unique_id = (
-            data.first_name.lower()
-            + "_bus_"
-            + attribute_name.lower().replace(" ", "_")
+            data.first_name.lower() + "_bus_" + attribute_name.lower().replace(" ", "_")
         )
         self._student_id = data.student_id
         self.data_key = attribute_name
@@ -143,6 +138,11 @@ class HCBBinarySensor(CoordinatorEntity, BinarySensorEntity):
             manufacturer=Const.DEFAULT_NAME,
             name=Const.DEFAULT_NAME,
         )
+
+    @property
+    def native_value(self) -> StateType:
+        """Return the value reported by the sensor."""
+        return self._sensor_data
 
     @callback
     def _handle_coordinator_update(self):

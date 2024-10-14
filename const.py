@@ -17,6 +17,4 @@ class Const:
     ATTR_ADDRESS = "Address"
     ATTR_HEADING = "Heading"
     ATTR_AM_SCHOOL_ARRIVAL_TIME = "AM School Arrival Time"
-    ATTR_PM_SCHOOL_ARRIVAL_TIME = "PM School Arrival Time"
-    ATTR_AM_STOP_ARRIVAL_TIME = "AM Stop Arrival Time"
     ATTR_PM_STOP_ARRIVAL_TIME = "PM Stop Arrival Time"

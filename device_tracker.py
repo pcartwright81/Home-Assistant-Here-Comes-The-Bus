@@ -63,7 +63,5 @@ class HCBTracker(CoordinatorEntity[StudentData], TrackerEntity):
             Const.ATTR_LOG_TIME: data.log_time,
             Const.ATTR_HEADING: data.heading,
             Const.ATTR_AM_SCHOOL_ARRIVAL_TIME: data.am_school_arrival_time,
-            Const.ATTR_PM_SCHOOL_ARRIVAL_TIME: data.pm_school_arrival_time,
-            Const.ATTR_AM_STOP_ARRIVAL_TIME: data.am_stop_arrival_time,
             Const.ATTR_PM_STOP_ARRIVAL_TIME: data.pm_stop_arrival_time,
         }

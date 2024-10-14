@@ -44,7 +44,6 @@ class HCBDataCoordinator(DataUpdateCoordinator[dict[str, StudentData]]):
         self.config_entry = config_entry
         self._school_id: str
         self._parent_id: str
-        self.data = {}
 
     async def async_config_entry_first_refresh(self) -> None:
         """Handle the first refresh."""
@@ -56,7 +55,7 @@ class HCBDataCoordinator(DataUpdateCoordinator[dict[str, StudentData]]):
             self.config_entry.data["Password"],
         )
         self._parent_id = userInfo.account.id
-
+        self.data = {}
         for student in list[Student](userInfo.linked_students.student):
             student_update = StudentData(student.first_name, student.entity_id)
             self.data[student.entity_id] = student_update
@@ -72,8 +71,32 @@ class HCBDataCoordinator(DataUpdateCoordinator[dict[str, StudentData]]):
             )
             if am_stops_and_scans.student_stops is None:
                 return
-            self._update_stops(student_update, am_stops_and_scans)
-            self._update_stops(student_update, pm_stops_and_scans)
+            am_stops = am_stops_and_scans.student_stops.student_stop
+            pm_stops = pm_stops_and_scans.student_stops.student_stop
+            student_update.am_start_time = am_stops[0].tier_start_time.time()
+            student_update.pm_start_time = pm_stops[0].tier_start_time.time()
+            self._update_stops(student_update, am_stops)
+            self._update_stops(student_update, pm_stops)
+            _LOGGER.debug(
+                "Student %s am start time %r",
+                student.first_name,
+                student_update.am_start_time,
+            )
+            _LOGGER.debug(
+                "Student %s pm start time %r",
+                student.first_name,
+                student_update.pm_start_time,
+            )
+            _LOGGER.debug(
+                "Student %s am stops done %r",
+                student.first_name,
+                student_update.am_stops_done,
+            )
+            _LOGGER.debug(
+                "Student %s pm stops done %r",
+                student.first_name,
+                student_update.pm_stops_done,
+            )
 
     async def _async_update_data(self) -> dict[str, StudentData]:
         time_now = dt_util.now()  # local time
@@ -86,35 +109,39 @@ class HCBDataCoordinator(DataUpdateCoordinator[dict[str, StudentData]]):
             student_stops = await hcbapi.get_bus_info(
                 self._school_id, self._parent_id, student_id, time_of_day_id
             )
-            student_update.vehiclelocation = student_stops.vehicle_location
+            self._update_vehicle_location(
+                student_update, student_stops.vehicle_location
+            )
             self._update_stops(student_update, student_stops)
         return self.data
 
-    def _should_poll_data(self, time_now: datetime, student: StudentData) -> bool:
+    def _should_poll_data(
+        self, time_now: datetime, student_update: StudentData
+    ) -> bool:
         """Check to see if the time is when the bus is moving."""
         if time_now.weekday() >= 5:
             _LOGGER.debug("Not polling because it's the weekend")
             return 0
         if (
-            time_now.time() < student.am_start_time
-            or time_now.time() < student.pm_start_time
+            time_now.time() < student_update.am_start_time
+            or time_now.time() < student_update.pm_start_time
         ):
             _LOGGER.debug("Not polling because it's too early")
             return 0
         if (
             self._is_morning(time_now)
-            and student.am_stops_done
-            and student.day_completed == time_now.day
+            and student_update.am_stops_done
+            and student_update.log_time.day == time_now.day
         ):
             _LOGGER.debug(
                 "Not polling %s because it's the morning and the am stops are done for the day",
-                student.student_id,
+                student_update.first_name,
             )
             return 0
-        if self._pm_stops_done and student.day_completed == time_now.day:
+        if student_update.pm_stops_done and student_update.log_time.day == time_now.day:
             _LOGGER.debug(
                 "Not polling %s because it's the evening and the stops are done for the day",
-                student.student_id,
+                student_update.first_name,
             )
             return 0
         return 1
@@ -137,24 +164,17 @@ class HCBDataCoordinator(DataUpdateCoordinator[dict[str, StudentData]]):
         student.latitude = float(vehicle_location.latitude)
         student.longitude = float(vehicle_location.longitude)
         student.log_time = vehicle_location.log_time
-        student.message_code = int(vehicle_location.message_code)
+        student.message_code = vehicle_location.message_code
+        student.speed = vehicle_location.speed
 
     def _update_stops(self, student: StudentData, stops: list[StudentStop]):
         if stops[0].time_of_day_id == hcbapi.AM_ID:
-            student.am_start_time = stops.student_stop[0].tier_start_time.time()
-            student.am_school_arrival_time = filter(
-                lambda x: x.stop_type == "School", stops
-            )
-            student.am_stop_arrival_time = filter(
-                lambda x: x.stop_type == "Stop", stops
-            )
+            # lamda function not working so...
+            for stop in stops:
+                if stop.stop_type == "School":
+                    student.am_school_arrival_time = stop.arrival_time.time()
         else:
-            student.pm_start_time = stops.student_stop[0].tier_start_time.time()
-            student.pm_school_arrival_time = filter(
-                lambda x: x.stop_type == "School", stops
-            )
-            student.pm_stop_arrival_time = filter(
-                lambda x: x.stop_type == "Stop", stops
-            )
-        if student.am_stops_done and student.pm_stops_done:
-            student.day_completed = dt_util.now().day
+            # lamda function not working so...
+            for stop in stops:
+                if stop.stop_type != "School":
+                    student.pm_stop_arrival_time = stop.arrival_time.time()
