@@ -1,6 +1,6 @@
 """Coordinator file for Here comes the bus Home assistant integration."""
 
-from datetime import datetime, time, timedelta
+from datetime import datetime, timedelta
 import logging
 
 from homeassistant.config_entries import ConfigEntry
@@ -9,9 +9,10 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from homeassistant.util import dt as dt_util
 
 from .const import Const
-from .data_update_entity import DataUpdateEntity
 from .hcbapi import hcbapi
 from .hcbapi.s1157 import Student
+from .hcbapi.s1158 import StudentStop, VehicleLocation
+from .student_data import StudentData
 
 _LOGGER = logging.getLogger(__name__)
 STUDENT_INFO = "student_info"
@@ -19,8 +20,10 @@ STOPS = "stops"
 VEHICLE_LOCATION = "vehicle_location"
 
 
-class HCBDataCoordinator(DataUpdateCoordinator[dict[str, DataUpdateEntity]]):
+class HCBDataCoordinator(DataUpdateCoordinator[dict[str, StudentData]]):
     """Define a data coordinator."""
+
+    config_entry: ConfigEntry
 
     def __init__(self, hass: HomeAssistant, config_entry: ConfigEntry) -> None:
         """Initialize the coordinator."""
@@ -30,20 +33,17 @@ class HCBDataCoordinator(DataUpdateCoordinator[dict[str, DataUpdateEntity]]):
             # Name of the data. For logging purposes.
             name=Const.DOMAIN,
             # Polling interval. Will only be polled if there are subscribers.
-            update_interval=timedelta(seconds=15),
+            update_interval=timedelta(
+                seconds=config_entry.data.get("UpdateInterval", 20)
+            ),
             # Set always_update to `False` if the data returned from the
             # api can be compared via `__eq__` to avoid duplicate updates
             # being dispatched to listeners
             always_update=False,
         )
-        self.config_entry: ConfigEntry = config_entry
+        self.config_entry = config_entry
         self._school_id: str
         self._parent_id: str
-        self._am_start_time: time = time(6, 0, 0)
-        self._pm_start_time: time = time(14, 0, 0)
-        self._current_day: int = dt_util.now().day
-        self._am_stops_done: bool = 0
-        self._pm_stops_done: bool = 0
         self.data = {}
 
     async def async_config_entry_first_refresh(self) -> None:
@@ -56,97 +56,105 @@ class HCBDataCoordinator(DataUpdateCoordinator[dict[str, DataUpdateEntity]]):
             self.config_entry.data["Password"],
         )
         self._parent_id = userInfo.account.id
-        am_times = []
-        pm_times = []
 
-        time_now = dt_util.now()  # local time
         for student in list[Student](userInfo.linked_students.student):
-            self.data[student.entity_id] = DataUpdateEntity(student)
+            student_update = StudentData(student.first_name, student.entity_id)
+            self.data[student.entity_id] = student_update
             am_stops_and_scans = await hcbapi.get_bus_info(
                 self._school_id, self._parent_id, student.entity_id, hcbapi.AM_ID
             )
             pm_stops_and_scans = await hcbapi.get_bus_info(
                 self._school_id, self._parent_id, student.entity_id, hcbapi.PM_ID
             )
+            # this gives the same info in am and pm, so don't need a check
+            self._update_vehicle_location(
+                student_update, am_stops_and_scans.vehicle_location
+            )
             if am_stops_and_scans.student_stops is None:
                 return
-            am_times.append(
-                am_stops_and_scans.student_stops.student_stop[0].tier_start_time.time()
-            )
-            pm_times.append(
-                pm_stops_and_scans.student_stops.student_stop[0].tier_start_time.time()
-            )
+            self._update_stops(student_update, am_stops_and_scans)
+            self._update_stops(student_update, pm_stops_and_scans)
 
-            if self._is_morning(time_now):
-                self.data[
-                    student.entity_id
-                ].vehiclelocation = am_stops_and_scans.vehicle_location
-            else:
-                self.data[
-                    student.entity_id
-                ].vehiclelocation = pm_stops_and_scans.vehicle_location
-
-        self._am_start_time = min(am_times)
-        self._pm_start_time = min(pm_times)
-        _LOGGER.debug("AM sart time: %s", self._am_start_time)
-        _LOGGER.debug("PM sart time: %s", self._pm_start_time)
-
-    async def _async_update_data(self) -> dict[str, DataUpdateEntity]:
+    async def _async_update_data(self) -> dict[str, StudentData]:
         time_now = dt_util.now()  # local time
         time_of_day_id = hcbapi.AM_ID
         if not self._is_morning(time_now):
             time_of_day_id = hcbapi.PM_ID
-        if not self._should_poll_data(time_now):
-            return {}
-        stops = []
-        for studentId in self.data:
-            student_stops = await hcbapi.get_bus_info(
-                self._school_id, self._parent_id, studentId, time_of_day_id
-            )
-
-            if student_stops.student_stops is None:
+        for student_id, student_update in self.data.items():
+            if not self._should_poll_data(time_now, student_update):
                 return {}
-            self.data[studentId].vehiclelocation = student_stops.vehicle_location
-            stops.extend(
-                stop.arrival_time for stop in student_stops.student_stops.student_stop
+            student_stops = await hcbapi.get_bus_info(
+                self._school_id, self._parent_id, student_id, time_of_day_id
             )
-
-        self._set_stops_completed(time_now, stops)
+            student_update.vehiclelocation = student_stops.vehicle_location
+            self._update_stops(student_update, student_stops)
         return self.data
 
-    def _set_stops_completed(self, time_now, stops):
-        stopsdone = all(item is not None for item in stops)
-        if self._is_morning(time_now):
-            self._am_stops_done = stopsdone
-        else:
-            self._pm_stops_done = stopsdone
-            if self._pm_stops_done:
-                self._current_day = time_now.day
-
-    def _should_poll_data(self, time_now: datetime) -> bool:
+    def _should_poll_data(self, time_now: datetime, student: StudentData) -> bool:
         """Check to see if the time is when the bus is moving."""
         if time_now.weekday() >= 5:
-            _LOGGER.debug("Not polling because it's the weekend!")
+            _LOGGER.debug("Not polling because it's the weekend")
             return 0
         if (
-            time_now.time() < self._am_start_time
-            or time_now.time() < self._pm_start_time
+            time_now.time() < student.am_start_time
+            or time_now.time() < student.pm_start_time
         ):
             _LOGGER.debug("Not polling because it's too early")
             return 0
-        if self._current_day == time_now.day:  # same day do more logic
-            if self._is_morning(time_now) and self._am_stops_done:
-                _LOGGER.debug(
-                    "Not polling because it's the morning and the stops are done"
-                )
-                return 0
-            if self._pm_stops_done:
-                _LOGGER.debug(
-                    "Not polling because it's the evening and the stops are done"
-                )
-                return 0
+        if (
+            self._is_morning(time_now)
+            and student.am_stops_done
+            and student.day_completed == time_now.day
+        ):
+            _LOGGER.debug(
+                "Not polling %s because it's the morning and the am stops are done for the day",
+                student.student_id,
+            )
+            return 0
+        if self._pm_stops_done and student.day_completed == time_now.day:
+            _LOGGER.debug(
+                "Not polling %s because it's the evening and the stops are done for the day",
+                student.student_id,
+            )
+            return 0
         return 1
 
     def _is_morning(self, time_now: datetime) -> bool:
-        """Return if it is morning."""
+        """Return true if it is morning."""
         return time_now.hour < 12
+
+    def _update_vehicle_location(
+        self, student: StudentData, vehicle_location: VehicleLocation
+    ):
+        if vehicle_location is None:
+            return
+        student.address = vehicle_location.address
+        student.bus_name = vehicle_location.name
+        student.display_on_map = vehicle_location.display_on_map
+        student.heading = vehicle_location.heading
+        student.ignition = vehicle_location.ignition
+        student.latent = vehicle_location.latent
+        student.latitude = float(vehicle_location.latitude)
+        student.longitude = float(vehicle_location.longitude)
+        student.log_time = vehicle_location.log_time
+        student.message_code = int(vehicle_location.message_code)
+
+    def _update_stops(self, student: StudentData, stops: list[StudentStop]):
+        if stops[0].time_of_day_id == hcbapi.AM_ID:
+            student.am_start_time = stops.student_stop[0].tier_start_time.time()
+            student.am_school_arrival_time = filter(
+                lambda x: x.stop_type == "School", stops
+            )
+            student.am_stop_arrival_time = filter(
+                lambda x: x.stop_type == "Stop", stops
+            )
+        else:
+            student.pm_start_time = stops.student_stop[0].tier_start_time.time()
+            student.pm_school_arrival_time = filter(
+                lambda x: x.stop_type == "School", stops
+            )
+            student.pm_stop_arrival_time = filter(
+                lambda x: x.stop_type == "Stop", stops
+            )
+        if student.am_stops_done and student.pm_stops_done:
+            student.day_completed = dt_util.now().day

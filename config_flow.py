@@ -34,6 +34,9 @@ class HereComesTheBusConfigFlow(config_entries.ConfigFlow, domain=Const.DOMAIN):
                     vol.Required("Username"): cv.string,
                     vol.Required("Password"): cv.string,
                     vol.Required("SchoolCode"): cv.string,
+                    vol.Optional("AddDeviceTracker", default=True): cv.boolean,
+                    vol.Optional("AddSensors", default=True): cv.boolean,
+                    vol.Optional("UpdateInterval", default=20): cv.positive_int,
                 }
             ),
             errors=errors,

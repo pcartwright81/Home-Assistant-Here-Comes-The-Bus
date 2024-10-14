@@ -8,7 +8,10 @@
         "data": {
           "Username": "Username",
           "Password": "Password",
-          "SchoolCode" : "SchoolCode"
+          "SchoolCode" : "School Code",
+          "AddDeviceTracker": "Add Device Tracker",
+          "AddSensors" : "Add Sensors",
+          "UpdateInterval" : "Update Interval"
         }
       }
     },
