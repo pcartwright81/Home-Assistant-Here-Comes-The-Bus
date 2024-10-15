@@ -17,6 +17,7 @@ from dateutil import parser
 
 _LOGGER = logging.getLogger(__name__)
 
+
 class HCBDataCoordinator(DataUpdateCoordinator[dict[str, StudentData]]):
     """Define a data coordinator."""
 
@@ -44,7 +45,9 @@ class HCBDataCoordinator(DataUpdateCoordinator[dict[str, StudentData]]):
 
     async def async_config_entry_first_refresh(self) -> None:
         """Handle the first refresh."""
-        school = await hcbapi.get_school_info(self.config_entry.data[Defaults.SCHOOL_CODE])
+        school = await hcbapi.get_school_info(
+            self.config_entry.data[Defaults.SCHOOL_CODE]
+        )
         self._school_id = school.customer.id
         userInfo = await hcbapi.get_parent_info(
             self._school_id,
@@ -154,9 +157,9 @@ class HCBDataCoordinator(DataUpdateCoordinator[dict[str, StudentData]]):
             return
         student.address = vehicle_location.address
         student.bus_name = vehicle_location.name
-        student.display_on_map = vehicle_location.display_on_map
+        student.display_on_map = self._convert_to_bool(vehicle_location.display_on_map)
         student.heading = vehicle_location.heading
-        student.ignition = vehicle_location.ignition
+        student.ignition = self._convert_to_bool(vehicle_location.ignition)
         student.latent = vehicle_location.latent
         student.latitude = float(vehicle_location.latitude)
         student.longitude = float(vehicle_location.longitude)
@@ -175,3 +178,8 @@ class HCBDataCoordinator(DataUpdateCoordinator[dict[str, StudentData]]):
             for stop in stops:
                 if stop.stop_type != "School":
                     student.pm_stop_arrival_time = stop.arrival_time.time()
+
+    def _convert_to_bool(self, str_to_convert: str) -> bool:
+        if str_to_convert == "Y":
+            return True
+        return False
