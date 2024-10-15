@@ -16,7 +16,7 @@ class StudentData:
         self.latitude: float = None
         self.longitude: float = None
         self.log_time: datetime = None
-        self.ignition: str = None
+        self.ignition: bool = None
         self.latent: str = None
         self.heading: str = None
         self.speed: int = None
