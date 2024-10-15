@@ -8,17 +8,14 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from homeassistant.util import dt as dt_util
 
-from .const import Const
+from .defaults import Defaults
 from .hcbapi import hcbapi
 from .hcbapi.s1157 import Student
 from .hcbapi.s1158 import StudentStop, VehicleLocation
 from .student_data import StudentData
+from dateutil import parser
 
 _LOGGER = logging.getLogger(__name__)
-STUDENT_INFO = "student_info"
-STOPS = "stops"
-VEHICLE_LOCATION = "vehicle_location"
-
 
 class HCBDataCoordinator(DataUpdateCoordinator[dict[str, StudentData]]):
     """Define a data coordinator."""
@@ -31,10 +28,10 @@ class HCBDataCoordinator(DataUpdateCoordinator[dict[str, StudentData]]):
             hass,
             _LOGGER,
             # Name of the data. For logging purposes.
-            name=Const.DOMAIN,
+            name=Defaults.DOMAIN,
             # Polling interval. Will only be polled if there are subscribers.
             update_interval=timedelta(
-                seconds=config_entry.data.get("UpdateInterval", 20)
+                seconds=config_entry.data.get(Defaults.UPDATE_INTERVAL, 20)
             ),
             # Set always_update to `False` if the data returned from the
             # api can be compared via `__eq__` to avoid duplicate updates
@@ -47,12 +44,12 @@ class HCBDataCoordinator(DataUpdateCoordinator[dict[str, StudentData]]):
 
     async def async_config_entry_first_refresh(self) -> None:
         """Handle the first refresh."""
-        school = await hcbapi.get_school_info(self.config_entry.data["SchoolCode"])
+        school = await hcbapi.get_school_info(self.config_entry.data[Defaults.SCHOOL_CODE])
         self._school_id = school.customer.id
         userInfo = await hcbapi.get_parent_info(
             self._school_id,
-            self.config_entry.data["Username"],
-            self.config_entry.data["Password"],
+            self.config_entry.data[Defaults.USERNAME],
+            self.config_entry.data[Defaults.PASSWORD],
         )
         self._parent_id = userInfo.account.id
         self.data = {}
@@ -163,7 +160,7 @@ class HCBDataCoordinator(DataUpdateCoordinator[dict[str, StudentData]]):
         student.latent = vehicle_location.latent
         student.latitude = float(vehicle_location.latitude)
         student.longitude = float(vehicle_location.longitude)
-        student.log_time = vehicle_location.log_time
+        student.log_time = parser.parse(vehicle_location.log_time)
         student.message_code = vehicle_location.message_code
         student.speed = vehicle_location.speed
 
