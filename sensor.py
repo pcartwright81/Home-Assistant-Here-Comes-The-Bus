@@ -126,7 +126,7 @@ class HCBBinarySensor(CoordinatorEntity[StudentData], BinarySensorEntity):
         self._attr_device_info = Defaults.get_device_info(self, data)
 
     @property
-    def native_value(self) -> StateType:
+    def is_on(self) -> StateType:
         """Return the value reported by the sensor."""
         return self._sensor_data
 
