@@ -9,9 +9,9 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from homeassistant.util import dt as dt_util
 
 from .defaults import Defaults
-from .hcbapi import hcbapi
-from .hcbapi.s1157 import Student
-from .hcbapi.s1158 import StudentStop, VehicleLocation
+from hcb_soap_client import HcbSoapClient
+from hcb_soap_client.s1157 import Student
+from hcb_soap_client.s1158 import StudentStop, VehicleLocation
 from .student_data import StudentData
 from dateutil import parser
 
@@ -45,11 +45,11 @@ class HCBDataCoordinator(DataUpdateCoordinator[dict[str, StudentData]]):
 
     async def async_config_entry_first_refresh(self) -> None:
         """Handle the first refresh."""
-        school = await hcbapi.get_school_info(
+        school = await HcbSoapClient.get_school_info(
             self.config_entry.data[Defaults.SCHOOL_CODE]
         )
         self._school_id = school.customer.id
-        userInfo = await hcbapi.get_parent_info(
+        userInfo = await HcbSoapClient.get_parent_info(
             self._school_id,
             self.config_entry.data[Defaults.USERNAME],
             self.config_entry.data[Defaults.PASSWORD],
@@ -59,11 +59,11 @@ class HCBDataCoordinator(DataUpdateCoordinator[dict[str, StudentData]]):
         for student in list[Student](userInfo.linked_students.student):
             student_update = StudentData(student.first_name, student.entity_id)
             self.data[student.entity_id] = student_update
-            am_stops_and_scans = await hcbapi.get_bus_info(
-                self._school_id, self._parent_id, student.entity_id, hcbapi.AM_ID
+            am_stops_and_scans = await HcbSoapClient.get_bus_info(
+                self._school_id, self._parent_id, student.entity_id, HcbSoapClient.AM_ID
             )
-            pm_stops_and_scans = await hcbapi.get_bus_info(
-                self._school_id, self._parent_id, student.entity_id, hcbapi.PM_ID
+            pm_stops_and_scans = await HcbSoapClient.get_bus_info(
+                self._school_id, self._parent_id, student.entity_id, HcbSoapClient.PM_ID
             )
             # this gives the same info in am and pm, so don't need a check
             self._update_vehicle_location(
@@ -100,13 +100,13 @@ class HCBDataCoordinator(DataUpdateCoordinator[dict[str, StudentData]]):
 
     async def _async_update_data(self) -> dict[str, StudentData]:
         time_now = dt_util.now()  # local time
-        time_of_day_id = hcbapi.AM_ID
+        time_of_day_id = HcbSoapClient.AM_ID
         if not self._is_morning(time_now):
-            time_of_day_id = hcbapi.PM_ID
+            time_of_day_id = HcbSoapClient.PM_ID
         for student_id, student_update in self.data.items():
             if not self._should_poll_data(time_now, student_update):
                 return {}
-            student_stops = await hcbapi.get_bus_info(
+            student_stops = await HcbSoapClient.get_bus_info(
                 self._school_id, self._parent_id, student_id, time_of_day_id
             )
             self._update_vehicle_location(
@@ -168,7 +168,7 @@ class HCBDataCoordinator(DataUpdateCoordinator[dict[str, StudentData]]):
         student.speed = vehicle_location.speed
 
     def _update_stops(self, student: StudentData, stops: list[StudentStop]):
-        if stops[0].time_of_day_id == hcbapi.AM_ID:
+        if stops[0].time_of_day_id == HcbSoapClient.AM_ID:
             # lamda function not working so...
             for stop in stops:
                 if stop.stop_type == "School":

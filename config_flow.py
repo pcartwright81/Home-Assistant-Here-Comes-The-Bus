@@ -11,7 +11,7 @@ from homeassistant.core import HomeAssistant
 import homeassistant.helpers.config_validation as cv
 
 from .defaults import Defaults
-from .hcbapi import hcbapi
+from hcb_soap_client import HcbSoapClient
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -33,7 +33,7 @@ async def validate_input(_: HomeAssistant, data: dict) -> dict[str, Any]:
     Data has the keys from DATA_SCHEMA with values provided by the user.
     """
     # Validate the data can be used to set up a connection.
-    valid = await hcbapi.test_connection(
+    valid = await HcbSoapClient.test_connection(
         data[Defaults.SCHOOL_CODE],
         data[Defaults.USERNAME],
         data[Defaults.PASSWORD],        
