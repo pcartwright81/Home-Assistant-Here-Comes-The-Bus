@@ -1,11 +1,5 @@
 {
     "name": "Here Comes The Bus",
-    "domains": [
-        "device_tracker",
-        "sensor"
-    ],
-    "homeassistant": "0.109.0",
-    "iot_class": "Cloud Polling",
-    "zip_release": true,
-    "filename": "hcb_ha.zip"
+    "content_in_root": false,
+    "homeassistant": "2024.8.0"
 }
