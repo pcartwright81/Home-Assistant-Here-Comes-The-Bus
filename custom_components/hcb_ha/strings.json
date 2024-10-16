@@ -4,25 +4,20 @@
     "step": {
       "user": {
         "title": "Connect to here comes the bus",
-        "description": "Enter the Information Below.",
+        "description": "Enter you information in the fields below.",
         "data": {
-          "Username": "Username",
-          "Password": "Password",
-          "SchoolCode" : "School Code",
-          "AddDeviceTracker": "Add Device Tracker",
-          "AddSensors" : "Add Sensors",
-          "UpdateInterval" : "Update Interval"
+          "username": "Username",
+          "password": "Password",
+          "school_code": "School Code",
+          "add_device_tracker": "Add Device Tracker",
+          "add_sensors": "Add Sensors",
+          "update_interval": "Update Interval"
         }
       }
     },
     "error": {
-      "cannot_connect": "Failed to connect to here comes the bus, check your input and try again.",
-      "invalid_auth": "Invalid authentication credentials.",
-      "unknown": "An unknown error occurred."
-    },
-    "success": {
-      "title": "Success",
-      "description": "Successfully connected to here comes the bus."
+      "cannot_connect": "Error connecting to here comes the bus, check your input and try again.",
+      "unknown": "Unknown error."
     }
   }
 }
