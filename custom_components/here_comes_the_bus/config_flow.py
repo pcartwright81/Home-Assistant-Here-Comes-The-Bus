@@ -1,16 +1,11 @@
-"""Config file for Here comes the bus Home assistant integration."""
+"""Adds config flow for Here comes the bus."""
 
-import logging
-from typing import Any
-
-from hcb_soap_client import HcbSoapClient
-import voluptuous as vol
-
-from homeassistant.auth.providers.homeassistant import InvalidAuth
-from homeassistant.config_entries import ConfigFlow
-from homeassistant.const import CONF_PASSWORD, CONF_USERNAME, __version__
-from homeassistant.core import HomeAssistant
 import homeassistant.helpers.config_validation as cv
+import voluptuous as vol
+from hcb_soap_client import HcbSoapClient
+from homeassistant import config_entries, data_entry_flow
+from homeassistant.auth.providers.homeassistant import InvalidAuth
+from homeassistant.const import CONF_PASSWORD, CONF_USERNAME, __version__
 
 from . import is_valid_ha_version
 from .const import (
@@ -20,10 +15,9 @@ from .const import (
     CONF_UPDATE_INTERVAL,
     DOMAIN,
     HERE_COMES_THE_BUS,
+    LOGGER,
     __min_ha_version__,
 )
-
-_LOGGER = logging.getLogger(__name__)
 
 DATA_SCHEMA = vol.Schema(
     {
@@ -37,37 +31,17 @@ DATA_SCHEMA = vol.Schema(
 )
 
 
-async def validate_input(_: HomeAssistant, data: dict) -> dict[str, Any]:
-    """Validate the user input allows us to connect.
-
-    Data has the keys from DATA_SCHEMA with values provided by the user.
-    """
-    # Validate the data can be used to set up a connection.
-    valid = await HcbSoapClient.test_connection(
-        data[CONF_SCHOOL_CODE],
-        data[CONF_USERNAME],
-        data[CONF_PASSWORD],
-    )
-    if not valid:
-        # If there is an error, raise an exception to notify HA that there was a
-        # problem. The UI will also show there was a problem
-        raise InvalidAuth
-
-    # Return info that you want to store in the config entry.
-    # "Title" is what is displayed to the user for this hub device
-    # It is stored internally in HA as part of the device config.
-    # See `async_step_user` below for how this is used
-    return {"title": HERE_COMES_THE_BUS}
-
-
-class HCBConfigFlowHandler(ConfigFlow, domain=DOMAIN):
+class HCBConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle a config flow for Here Comes The Bus."""
 
     VERSION = 1
 
-    async def async_step_user(self, user_input=None):
-        """Handle the initial step."""
-
+    async def async_step_user(
+        self,
+        user_input: dict | None = None,
+    ) -> data_entry_flow.FlowResult:
+        """Handle a flow initialized by the user."""
+        _errors = {}
         if not is_valid_ha_version():
             return self.async_abort(
                 reason="unsupported_version",
@@ -76,19 +50,33 @@ class HCBConfigFlowHandler(ConfigFlow, domain=DOMAIN):
                     "run_ver": __version__,
                 },
             )
-        errors = {}
         if user_input is not None:
             try:
-                info = await validate_input(self.hass, user_input)
-
-                return self.async_create_entry(title=info["title"], data=user_input)
+                _ = await self._test_credentials(
+                    username=user_input[CONF_USERNAME],
+                    password=user_input[CONF_PASSWORD],
+                    schoolcode=user_input[CONF_SCHOOL_CODE],
+                )
             except InvalidAuth:
-                errors["base"] = "invalid_auth"
-            except Exception:  # pylint: disable=broad-except
-                _LOGGER.exception("Unexpected exception")
-                errors["base"] = "unknown"
+                _errors["base"] = "invalid_auth"
+            except Exception:  # noqa: BLE001
+                LOGGER.exception("Unexpected exception")
+                _errors["base"] = "unknown"
+            else:
+                return self.async_create_entry(
+                    title=HERE_COMES_THE_BUS,
+                    data=user_input,
+                )
 
-        # If there is no user input or there were errors, show the form again, including any errors that were found with the input.
         return self.async_show_form(
-            step_id="user", data_schema=DATA_SCHEMA, errors=errors
+            step_id="user",
+            data_schema=DATA_SCHEMA,
+            errors=_errors,
         )
+
+    async def _test_credentials(
+        self, username: str, password: str, schoolcode: str
+    ) -> bool:
+        """Validate credentials."""
+        client = HcbSoapClient()
+        return await client.test_connection(schoolcode, username, password)

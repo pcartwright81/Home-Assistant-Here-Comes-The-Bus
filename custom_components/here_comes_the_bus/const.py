@@ -1,4 +1,5 @@
 """Constants for Here Comes the Bus custom component."""
+
 from logging import Logger, getLogger
 
 LOGGER: Logger = getLogger(__package__)

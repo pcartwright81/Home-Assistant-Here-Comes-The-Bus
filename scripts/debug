@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+
+set -e
+
+cd "$(dirname "$0")/.."
+
+# Create config dir if not present
+if [[ ! -d "${PWD}/config" ]]; then
+    mkdir -p "${PWD}/config"
+    hass --config "${PWD}/config" --script ensure_config
+fi
+
+# Set the path to custom_components
+## This let's us have the structure we want <root>/custom_components/area_tree
+## while at the same time have Home Assistant configuration inside <root>/config
+## without resulting to symlinks.
+export PYTHONPATH="${PYTHONPATH}:${PWD}/custom_components"
+
+# Start Home Assistant
+#
+# See https://github.com/home-assistant/core/issues/110623#issuecomment-2266933072
+# Also see https://docs.python.org/3/using/cmdline.html#envvar-PYTHON_FROZEN_MODULES for alternate fix when HA moves to Python 13, using env in launch.json
+# Do not set debugpy in configuration.yaml if adding debugpy in command line here...
+
+# To start and wait for remote debugger
+python3 -Xfrozen_modules=off -m debugpy --listen localhost:5678 -m homeassistant --config ${PWD}/config

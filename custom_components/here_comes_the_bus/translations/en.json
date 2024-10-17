@@ -8,7 +8,7 @@
           "school_code": "School Code",
           "add_device_tracker": "Add Device Tracker",
           "add_sensors": "Add Sensors",
-          "update_interval": "Update Interval"
+          "update_interval": "Update Interval (s)"
         }
       }
     },

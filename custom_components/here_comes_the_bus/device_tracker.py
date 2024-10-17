@@ -1,15 +1,17 @@
 """Define a device tracker."""
 
-from propcache import cached_property
+from collections.abc import Callable
+from functools import cached_property
+from typing import Any
 
-from homeassistant.components.device_tracker import TrackerEntity
-from homeassistant.config_entries import ConfigEntry
+from attr import dataclass
+from homeassistant.components.device_tracker import (
+    TrackerEntity,  # type: ignore i am pretty sure it is but ?
+    TrackerEntityDescription,  # type: ignore i am pretty sure it is but ?
+)
 from homeassistant.core import HomeAssistant, callback
-from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from . import get_device_info
 from .const import (
     ATTR_AM_ARRIVAL_TIME,
     ATTR_BUS_NAME,
@@ -20,86 +22,103 @@ from .const import (
     ATTR_MESSAGE_CODE,
     ATTR_PM_ARRIVAL_TIME,
     ATTR_SPEED,
-    BUS,
     CONF_ADD_DEVICE_TRACKER,
 )
 from .coordinator import HCBDataCoordinator
-from .student_data import StudentData
+from .data import HCBConfigEntry, StudentData
+from .entity import HCBEntity
+
+
+@dataclass(frozen=True, kw_only=True)
+class HCBTrackerEntityDescription(TrackerEntityDescription, frozen_or_thawed=True):
+    """Describes a here comes the bus tracker."""
+
+    latitude_fn: Callable[[StudentData], float | None]
+    longitude_fn: Callable[[StudentData], float | None]
+    address_fn: Callable[[StudentData], str | None]
+
+
+DEVICE_TRACKERS = [
+    HCBTrackerEntityDescription(
+        name="",
+        key="device_location",
+        latitude_fn=lambda x: x.latitude,
+        longitude_fn=lambda x: x.longitude,
+        address_fn=lambda x: x.address,
+    ),
+]
+
+EXTRA_ATTRIBUTES: dict[str, Callable[[StudentData], Any]] = {
+    ATTR_AM_ARRIVAL_TIME: lambda x: x.am_arrival_time,
+    ATTR_BUS_NAME: lambda x: x.bus_name,
+    ATTR_DISPLAY_ON_MAP: lambda x: x.display_on_map,
+    ATTR_HEADING: lambda x: x.heading,
+    ATTR_IGNITION: lambda x: x.ignition,
+    ATTR_LOG_TIME: lambda x: x.log_time,
+    ATTR_MESSAGE_CODE: lambda x: x.message_code,
+    ATTR_SPEED: lambda x: x.speed,
+    ATTR_PM_ARRIVAL_TIME: lambda x: x.pm_arrival_time,
+}
 
 
 async def async_setup_entry(
-    _: HomeAssistant, config_entry: ConfigEntry, async_add_entities: AddEntitiesCallback
-):
+    _: HomeAssistant,
+    entry: HCBConfigEntry,
+    async_add_entities: AddEntitiesCallback,
+) -> None:
     """Set up bus sensors."""
-    if bool(config_entry.data.get(CONF_ADD_DEVICE_TRACKER, True)) is not True:
+    if bool(entry.data.get(CONF_ADD_DEVICE_TRACKER, True)) is not True:
         return
 
-    coordinator: HCBDataCoordinator = config_entry.runtime_data
+    async_add_entities(
+        HCBTracker(entry.runtime_data.coordinator, student, tracker)
+        for student in entry.runtime_data.coordinator.data.values()
+        for tracker in DEVICE_TRACKERS
+    )
 
-    sensors = [
-        HCBTracker(coordinator, student) for student in coordinator.data.values()
-    ]
-    async_add_entities(sensors)
 
-
-class HCBTracker(CoordinatorEntity[StudentData], TrackerEntity):
+class HCBTracker(HCBEntity, TrackerEntity):
     """Defines a single bus sensor."""
 
-    def __init__(self, coordinator: HCBDataCoordinator, student: StudentData) -> None:
+    entity_description: HCBTrackerEntityDescription
+
+    def __init__(
+        self,
+        coordinator: HCBDataCoordinator,
+        student: StudentData,
+        description: HCBTrackerEntityDescription,
+    ) -> None:
         """Pass coordinator to CoordinatorEntity."""
-        super().__init__(coordinator)
-        self._student = student
+        super().__init__(coordinator, student, description)
         self.icon = "mdi:bus"
-
-    @property
-    def device_info(self) -> DeviceInfo | None:
-        """Return device information for this sensor."""
-        return get_device_info(self._student)
-
-    @property
-    def name(self) -> str | None:
-        """Return the name of this device."""
-        return f"{self._student.first_name} {BUS}"
-
-    @property
-    def unique_id(self) -> str | None:
-        """Return a unique identifier for this sensor."""
-        return f"{self._student.first_name}_{BUS}"
 
     @cached_property
     def location_name(self) -> str | None:
         """Return a location name for the current location of the device."""
-        return self._student.address
+        return self.entity_description.address_fn(self.student)
 
     @cached_property
     def latitude(self) -> float | None:
         """Return latitude value of the device."""
-        return self._student.latitude
+        return self.entity_description.latitude_fn(self.student)
 
     @cached_property
     def longitude(self) -> float | None:
         """Return longitude value of the device."""
-        return self._student.longitude
+        return self.entity_description.longitude_fn(self.student)
 
     @property
-    def extra_state_attributes(self) -> dict[str, str]:
+    def extra_state_attributes(self) -> dict[str, Any]:
         """Return the state attributes."""
-        return {
-            ATTR_BUS_NAME: self._student.bus_name,
-            ATTR_SPEED: self._student.speed,
-            ATTR_MESSAGE_CODE: self._student.message_code,
-            ATTR_DISPLAY_ON_MAP: self._student.display_on_map,
-            ATTR_IGNITION: self._student.ignition,
-            ATTR_LOG_TIME: self._student.log_time,
-            ATTR_HEADING: self._student.heading,
-            ATTR_AM_ARRIVAL_TIME: self._student.am_arrival_time,
-            ATTR_PM_ARRIVAL_TIME: self._student.pm_arrival_time,
-        }
+        extra_attributes = {}
+        for key, value in EXTRA_ATTRIBUTES.items():
+            extra_attributes[key] = value(self.student)
+        return extra_attributes
 
     @callback
-    def _handle_coordinator_update(self):
-        """Handle updated self._student from the coordinator."""
+    def _handle_coordinator_update(self) -> None:
+        """Handle updated self.student from the coordinator."""
         if len(self.coordinator.data) == 0:
             return
-        self._student = self.coordinator.data[self._student.student_id]
+        self.student = self.coordinator.data[self.student.student_id]
         self.async_write_ha_state()

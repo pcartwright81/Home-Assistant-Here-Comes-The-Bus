@@ -1,6 +1,9 @@
-"""Init file for Here comes the bus Home assistant integration."""
+"""
+Custom integration to integrate Here comes the bus with Home Assistant.
 
-import logging
+For more details about this integration, please refer to
+https://github.com/pcartwright81/Home-Assistant-Here-Comes-The-Bus
+"""
 
 from homeassistant.components import persistent_notification
 from homeassistant.config_entries import ConfigEntry
@@ -13,25 +16,25 @@ from homeassistant.const import (
     __version__,
 )
 from homeassistant.core import HomeAssistant, callback
-from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
+from homeassistant.loader import async_get_loaded_integration
+
+from custom_components.here_comes_the_bus.coordinator import HCBDataCoordinator
 
 from .const import (
-    BUS,
     CONF_SCHOOL_CODE,
     DOMAIN,
     HERE_COMES_THE_BUS,
+    LOGGER,
     MIN_HA_MAJ_VER,
     MIN_HA_MIN_VER,
     __min_ha_version__,
 )
-from .coordinator import HCBDataCoordinator
-from .student_data import StudentData
+from .data import HCBConfigEntry, HCBData
 
-_LOGGER = logging.getLogger(__name__)
 PLATFORMS = [Platform.BINARY_SENSOR, Platform.DEVICE_TRACKER, Platform.SENSOR]
 
 
-async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+async def async_setup_entry(hass: HomeAssistant, entry: HCBConfigEntry) -> bool:
     """Set up Here Comes the Bus integration from a config entry."""
     if not is_valid_ha_version():
         msg = (
@@ -40,22 +43,17 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             " Please upgrade HomeAssistant to continue use this integration."
         )
         _notify_message(hass, "inv_ha_version", HERE_COMES_THE_BUS, msg)
-        _LOGGER.warning(msg)
+        LOGGER.warning(msg)
         return False
     _fix_config(hass, entry)
     coordinator = HCBDataCoordinator(hass, entry)
+    entry.runtime_data = HCBData(
+        integration=async_get_loaded_integration(hass, entry.domain),
+        coordinator=coordinator,
+    )
     await coordinator.async_config_entry_first_refresh()
-    entry.runtime_data = coordinator
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     return True
-
-
-async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    """Unload a config entry."""
-    # This is called when an entry/configured device is to be removed. The class
-    # needs to unload itself, and remove callbacks. See the classes for further
-    # details
-    return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
 
 
 def is_min_ha_version(min_ha_major_ver: int, min_ha_minor_ver: int) -> bool:
@@ -68,16 +66,6 @@ def is_min_ha_version(min_ha_major_ver: int, min_ha_minor_ver: int) -> bool:
 def is_valid_ha_version() -> bool:
     """Check if HA version is valid for this integration."""
     return is_min_ha_version(MIN_HA_MAJ_VER, MIN_HA_MIN_VER)
-
-
-def get_device_info(student_data: StudentData):
-    """Get the standard device info."""
-    return DeviceInfo(
-        entry_type=DeviceEntryType.SERVICE,
-        identifiers={(DOMAIN, student_data.student_id)},
-        manufacturer=HERE_COMES_THE_BUS,
-        name=f"{student_data.first_name} {BUS}",
-    )
 
 
 def _notify_message(
@@ -99,3 +87,20 @@ def _fix_config(hass: HomeAssistant, entry: ConfigEntry) -> None:
     new_data[CONF_PASSWORD] = entry.data[CONF_PASSWORD.title()]
     new_data[CONF_SCHOOL_CODE] = entry.data["SchoolCode"]
     hass.config_entries.async_update_entry(entry, data=new_data)
+
+
+async def async_unload_entry(
+    hass: HomeAssistant,
+    entry: HCBConfigEntry,
+) -> bool:
+    """Handle removal of an entry."""
+    return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+
+
+async def async_reload_entry(
+    hass: HomeAssistant,
+    entry: HCBConfigEntry,
+) -> None:
+    """Reload config entry."""
+    await async_unload_entry(hass, entry)
+    await async_setup_entry(hass, entry)

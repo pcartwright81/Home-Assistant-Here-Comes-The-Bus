@@ -1,17 +1,14 @@
 """Define sensors."""
 
 from collections.abc import Callable
-from dataclasses import dataclass
+from datetime import datetime
 from typing import Any
 
+from attr import dataclass
 from homeassistant.components.sensor import SensorEntity, SensorEntityDescription
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
-from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from . import get_device_info
 from .const import (
     ATTR_ADDRESS,
     ATTR_AM_ARRIVAL_TIME,
@@ -23,25 +20,25 @@ from .const import (
     ATTR_MESSAGE_CODE,
     ATTR_PM_ARRIVAL_TIME,
     ATTR_SPEED,
-    BUS,
     CONF_ADD_SENSORS,
 )
 from .coordinator import HCBDataCoordinator
-from .student_data import StudentData
+from .data import HCBConfigEntry, StudentData
+from .entity import HCBEntity
 
-type StateType = str | int | float | None
+type StateType = str | datetime | float | None
 DEFAULT_ICON = "def_icon"
 
 
-@dataclass
-class HCBSensorEntityDescription(SensorEntityDescription):
+@dataclass(frozen=True, kw_only=True)
+class HCBSensorEntityDescription(SensorEntityDescription, frozen_or_thawed=True):
     """A class that describes ThinQ sensor entities."""
 
     unit_fn: Callable[[Any], str] | None = None
-    value_fn: Callable[[Any], float | str] | None = None
+    value_fn: Callable[[StudentData], float | str | datetime | None] | None = None
 
 
-sensor_descs: tuple[HCBSensorEntityDescription, ...] = (
+ENTITY_DESCRIPTIONS: tuple[HCBSensorEntityDescription, ...] = (
     HCBSensorEntityDescription(
         key=ATTR_BUS_NAME,
         name="Number",
@@ -106,23 +103,22 @@ sensor_descs: tuple[HCBSensorEntityDescription, ...] = (
 
 
 async def async_setup_entry(
-    _: HomeAssistant, config_entry: ConfigEntry, async_add_entities: AddEntitiesCallback
-):
+    hass: HomeAssistant,  # noqa: ARG001 Unused function argument: `hass`
+    entry: HCBConfigEntry,
+    async_add_entities: AddEntitiesCallback,
+) -> None:
     """Set up bus sensors."""
-
-    if bool(config_entry.data.get(CONF_ADD_SENSORS, True)) is not True:
+    if bool(entry.data.get(CONF_ADD_SENSORS, True)) is not True:
         return
 
-    coordinator: HCBDataCoordinator = config_entry.runtime_data
-    sensors = [
-        HCBSensor(coordinator, student, sensor_desc)
-        for sensor_desc in sensor_descs
-        for student in coordinator.data.values()
-    ]
-    async_add_entities(sensors)
+    async_add_entities(
+        HCBSensor(entry.runtime_data.coordinator, entity_description, student)
+        for entity_description in ENTITY_DESCRIPTIONS
+        for student in entry.runtime_data.coordinator.data.values()
+    )
 
 
-class HCBSensor(CoordinatorEntity[StudentData], SensorEntity):
+class HCBSensor(HCBEntity, SensorEntity):
     """Defines a single bus sensor."""
 
     entity_description: HCBSensorEntityDescription
@@ -130,39 +126,23 @@ class HCBSensor(CoordinatorEntity[StudentData], SensorEntity):
     def __init__(
         self,
         coordinator: HCBDataCoordinator,
-        student: StudentData,
         description: HCBSensorEntityDescription,
+        student: StudentData,
     ) -> None:
         """Pass coordinator to CoordinatorEntity."""
-        super().__init__(coordinator)
-        self._student = student
-        self.entity_description = description
-        self.icon = description.icon
-
-    @property
-    def device_info(self) -> DeviceInfo | None:
-        """Return device information for this sensor."""
-        return get_device_info(self._student)
-
-    @property
-    def name(self) -> str | None:
-        """Return the name of this device."""
-        return f"{self._student.first_name} {BUS} {self.entity_description.name}"
-
-    @property
-    def unique_id(self) -> str | None:
-        """Return a unique identifier for this sensor."""
-        return f"{self._student.first_name}_{BUS}_{self.entity_description.key}".lower()
+        super().__init__(coordinator, student, description)
 
     @property
     def native_value(self) -> StateType:
         """Return the state of the sensor."""
-        return self.entity_description.value_fn(self._student)
+        if self.entity_description.value_fn is None:
+            return None
+        return self.entity_description.value_fn(self.student)
 
     @callback
-    def _handle_coordinator_update(self):
+    def _handle_coordinator_update(self) -> None:
         """Handle updated data from the coordinator."""
         if len(self.coordinator.data) == 0:
             return
-        self._student = self.coordinator.data[self._student.student_id]
+        self.student = self.coordinator.data[self.student.student_id]
         self.async_write_ha_state()
