@@ -24,8 +24,8 @@ Platform | Description
 
 1. Using the tool of choice open the directory (folder) for your HA configuration (where you find `configuration.yaml`).
 1. If you do not have a `custom_components` directory (folder) there, you need to create it.
-1. In the `custom_components` directory (folder) create a new folder called `hcb_ha`.
-1. Download _all_ the files from the `custom_components/hcb_ha/` directory (folder) in this repository.
+1. In the `custom_components` directory (folder) create a new folder called `here_comes_the_bus`.
+1. Download _all_ the files from the `custom_components/here_comes_the_bus/` directory (folder) in this repository.
 1. Place the files you downloaded in the new directory (folder) you created.
 1. Restart Home Assistant
 1. In the HA UI go to "Configuration" -> "Integrations" click "+" and search for "Here Comes the Bus"

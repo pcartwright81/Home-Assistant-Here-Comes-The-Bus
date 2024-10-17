@@ -1,5 +1,5 @@
 {
-  "domain": "hcb_ha",
+  "domain": "here_comes_the_bus",
   "name": "Here Comes The Bus",
   "codeowners": ["@pcartwright81"],
   "config_flow": true,

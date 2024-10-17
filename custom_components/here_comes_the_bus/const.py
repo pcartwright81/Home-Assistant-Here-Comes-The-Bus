@@ -1,10 +1,13 @@
 """Constants for Here Comes the Bus custom component."""
+from logging import Logger, getLogger
+
+LOGGER: Logger = getLogger(__package__)
 
 __version__ = "0.0.1"
 PROJECT_URL = "hhttps://github.com/moralmunky/Home-Assistant-Mail-And-Packages/"
 ISSUE_URL = f"{PROJECT_URL}issues"
 
-DOMAIN = "hcb_ha"
+DOMAIN = "here_comes_the_bus"
 HERE_COMES_THE_BUS = "Here comes the bus"
 BUS = "Bus"
 
