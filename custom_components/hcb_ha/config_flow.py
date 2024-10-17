@@ -3,26 +3,36 @@
 import logging
 from typing import Any
 
+from hcb_soap_client import HcbSoapClient
 import voluptuous as vol
 
-from homeassistant import config_entries
 from homeassistant.auth.providers.homeassistant import InvalidAuth
+from homeassistant.config_entries import ConfigFlow
+from homeassistant.const import CONF_PASSWORD, CONF_USERNAME, __version__
 from homeassistant.core import HomeAssistant
 import homeassistant.helpers.config_validation as cv
 
-from .defaults import Defaults
-from hcb_soap_client import HcbSoapClient
+from . import is_valid_ha_version
+from .const import (
+    CONF_ADD_DEVICE_TRACKER,
+    CONF_ADD_SENSORS,
+    CONF_SCHOOL_CODE,
+    CONF_UPDATE_INTERVAL,
+    DOMAIN,
+    HERE_COMES_THE_BUS,
+    __min_ha_version__,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
 DATA_SCHEMA = vol.Schema(
     {
-        vol.Required(Defaults.USERNAME): cv.string,
-        vol.Required(Defaults.PASSWORD): cv.string,
-        vol.Required(Defaults.SCHOOL_CODE): cv.string,
-        vol.Optional(Defaults.ADD_DEVICE_TRACKER, default=True): cv.boolean,
-        vol.Optional(Defaults.ADD_SENSORS, default=True): cv.boolean,
-        vol.Optional(Defaults.UPDATE_INTERVAL, default=20): cv.positive_int,
+        vol.Required(CONF_USERNAME): cv.string,
+        vol.Required(CONF_PASSWORD): cv.string,
+        vol.Required(CONF_SCHOOL_CODE): cv.string,
+        vol.Optional(CONF_ADD_DEVICE_TRACKER, default=True): cv.boolean,
+        vol.Optional(CONF_ADD_SENSORS, default=True): cv.boolean,
+        vol.Optional(CONF_UPDATE_INTERVAL, default=20): cv.positive_int,
     }
 )
 
@@ -34,9 +44,9 @@ async def validate_input(_: HomeAssistant, data: dict) -> dict[str, Any]:
     """
     # Validate the data can be used to set up a connection.
     valid = await HcbSoapClient.test_connection(
-        data[Defaults.SCHOOL_CODE],
-        data[Defaults.USERNAME],
-        data[Defaults.PASSWORD],        
+        data[CONF_SCHOOL_CODE],
+        data[CONF_USERNAME],
+        data[CONF_PASSWORD],
     )
     if not valid:
         # If there is an error, raise an exception to notify HA that there was a
@@ -47,22 +57,25 @@ async def validate_input(_: HomeAssistant, data: dict) -> dict[str, Any]:
     # "Title" is what is displayed to the user for this hub device
     # It is stored internally in HA as part of the device config.
     # See `async_step_user` below for how this is used
-    return {"title": Defaults.HERE_COMES_THE_BUS}
+    return {"title": HERE_COMES_THE_BUS}
 
 
-class ConfigFlow(config_entries.ConfigFlow, domain=Defaults.DOMAIN):
+class HCBConfigFlowHandler(ConfigFlow, domain=DOMAIN):
     """Handle a config flow for Here Comes The Bus."""
 
     VERSION = 1
 
     async def async_step_user(self, user_input=None):
         """Handle the initial step."""
-        # This goes through the steps to take the user through the setup process.
-        # Using this it is possible to update the UI and prompt for additional
-        # information. This example provides a single form (built from `DATA_SCHEMA`),
-        # and when that has some validated input, it calls `async_create_entry` to
-        # actually create the HA config entry. Note the "title" value is returned by
-        # `validate_input` above.
+
+        if not is_valid_ha_version():
+            return self.async_abort(
+                reason="unsupported_version",
+                description_placeholders={
+                    "req_ver": __min_ha_version__,
+                    "run_ver": __version__,
+                },
+            )
         errors = {}
         if user_input is not None:
             try:

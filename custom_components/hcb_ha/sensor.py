@@ -1,17 +1,108 @@
 """Define sensors."""
 
-from homeassistant.components.binary_sensor import BinarySensorEntity
-from homeassistant.components.sensor import SensorEntity
+from collections.abc import Callable
+from dataclasses import dataclass
+from typing import Any
+
+from homeassistant.components.sensor import SensorEntity, SensorEntityDescription
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
+from . import get_device_info
+from .const import (
+    ATTR_ADDRESS,
+    ATTR_AM_ARRIVAL_TIME,
+    ATTR_BUS_NAME,
+    ATTR_HEADING,
+    ATTR_LATITUDE,
+    ATTR_LOG_TIME,
+    ATTR_LONGITUDE,
+    ATTR_MESSAGE_CODE,
+    ATTR_PM_ARRIVAL_TIME,
+    ATTR_SPEED,
+    BUS,
+    CONF_ADD_SENSORS,
+)
 from .coordinator import HCBDataCoordinator
-from .defaults import Defaults
 from .student_data import StudentData
 
 type StateType = str | int | float | None
+DEFAULT_ICON = "def_icon"
+
+
+@dataclass
+class HCBSensorEntityDescription(SensorEntityDescription):
+    """A class that describes ThinQ sensor entities."""
+
+    unit_fn: Callable[[Any], str] | None = None
+    value_fn: Callable[[Any], float | str] | None = None
+
+
+sensor_descs: tuple[HCBSensorEntityDescription, ...] = (
+    HCBSensorEntityDescription(
+        key=ATTR_BUS_NAME,
+        name="Number",
+        value_fn=lambda x: x.bus_name,
+        icon="mdi:bus",
+    ),
+    HCBSensorEntityDescription(
+        key=ATTR_SPEED,
+        name="Speed",
+        value_fn=lambda x: x.speed,
+        icon="mdi:bus",
+    ),
+    HCBSensorEntityDescription(
+        key=ATTR_MESSAGE_CODE,
+        name="Message code",
+        value_fn=lambda x: x.message_code,
+        icon="mdi:bus",
+    ),
+    HCBSensorEntityDescription(
+        key=ATTR_LOG_TIME,
+        name="Log time",
+        value_fn=lambda x: x.log_time,
+        icon="mdi:bus",
+    ),
+    HCBSensorEntityDescription(
+        key=ATTR_LATITUDE,
+        name="Latitude",
+        value_fn=lambda x: x.latitude,
+        icon="mdi:bus",
+    ),
+    HCBSensorEntityDescription(
+        key=ATTR_LONGITUDE,
+        name="Longitude",
+        value_fn=lambda x: x.longitude,
+        icon="mdi:bus",
+    ),
+    HCBSensorEntityDescription(
+        key=ATTR_ADDRESS,
+        name="Address",
+        value_fn=lambda x: x.address,
+        icon="mdi:bus",
+    ),
+    HCBSensorEntityDescription(
+        key=ATTR_HEADING,
+        name="Heading",
+        value_fn=lambda x: x.heading,
+        icon="mdi:bus",
+    ),
+    HCBSensorEntityDescription(
+        key=ATTR_AM_ARRIVAL_TIME,
+        name="AM arrival time",
+        value_fn=lambda x: x.am_arrival_time,
+        icon="mdi:bus",
+    ),
+    HCBSensorEntityDescription(
+        key=ATTR_PM_ARRIVAL_TIME,
+        name="PM arrival time",
+        value_fn=lambda x: x.pm_arrival_time,
+        icon="mdi:bus",
+    ),
+)
 
 
 async def async_setup_entry(
@@ -19,122 +110,59 @@ async def async_setup_entry(
 ):
     """Set up bus sensors."""
 
-    if bool(config_entry.data.get(Defaults.ADD_SENSORS, True)) is not True:
+    if bool(config_entry.data.get(CONF_ADD_SENSORS, True)) is not True:
         return
 
-    coordinator = config_entry.runtime_data
-    sensors = []
-    for student_id in coordinator.data:
-        sensors.extend(
-            [
-                HCBSensor(coordinator, student_id, Defaults.ATTR_BUS_NAME),
-                HCBSensor(coordinator, student_id, Defaults.ATTR_SPEED),
-                HCBSensor(coordinator, student_id, Defaults.ATTR_MESSAGE_CODE),
-                HCBBinarySensor(coordinator, student_id, Defaults.ATTR_DISPLAY_ON_MAP),
-                HCBBinarySensor(coordinator, student_id, Defaults.ATTR_IGNITION),
-                HCBSensor(coordinator, student_id, Defaults.ATTR_LOG_TIME),
-                HCBSensor(coordinator, student_id, Defaults.ATTR_LATITUDE),
-                HCBSensor(coordinator, student_id, Defaults.ATTR_LONGITUDE),
-                HCBSensor(coordinator, student_id, Defaults.ATTR_ADDRESS),
-                HCBSensor(coordinator, student_id, Defaults.ATTR_HEADING),
-                HCBSensor(
-                    coordinator, student_id, Defaults.ATTR_AM_SCHOOL_ARRIVAL_TIME
-                ),
-                HCBSensor(coordinator, student_id, Defaults.ATTR_PM_STOP_ARRIVAL_TIME),
-            ]
-        )
-
+    coordinator: HCBDataCoordinator = config_entry.runtime_data
+    sensors = [
+        HCBSensor(coordinator, student, sensor_desc)
+        for sensor_desc in sensor_descs
+        for student in coordinator.data.values()
+    ]
     async_add_entities(sensors)
-
-
-def _get_state(_, data: StudentData, data_key: str):
-    """Return the state for the data."""
-    match data_key:
-        case Defaults.ATTR_BUS_NAME:
-            return data.bus_name
-        case Defaults.ATTR_SPEED:
-            return data.speed
-        case Defaults.ATTR_MESSAGE_CODE:
-            return data.message_code
-        case Defaults.ATTR_DISPLAY_ON_MAP:
-            return data.display_on_map
-        case Defaults.ATTR_IGNITION:
-            return data.ignition
-        case Defaults.ATTR_ADDRESS:
-            return data.address
-        case Defaults.ATTR_LATITUDE:
-            return data.latitude
-        case Defaults.ATTR_LONGITUDE:
-            return data.longitude
-        case Defaults.ATTR_LOG_TIME:
-            return data.log_time
-        case Defaults.ATTR_HEADING:
-            return data.heading
-        case Defaults.ATTR_AM_SCHOOL_ARRIVAL_TIME:
-            return data.am_school_arrival_time
-        case Defaults.ATTR_PM_STOP_ARRIVAL_TIME:
-            return data.pm_stop_arrival_time
 
 
 class HCBSensor(CoordinatorEntity[StudentData], SensorEntity):
     """Defines a single bus sensor."""
 
+    entity_description: HCBSensorEntityDescription
+
     def __init__(
-        self, coordinator: HCBDataCoordinator, student_id: str, attribute_name: str
+        self,
+        coordinator: HCBDataCoordinator,
+        student: StudentData,
+        description: HCBSensorEntityDescription,
     ) -> None:
         """Pass coordinator to CoordinatorEntity."""
-        data = coordinator.data[student_id]
-
         super().__init__(coordinator)
-        self.name = f"{data.first_name} {Defaults.BUS} {attribute_name}"
-        self.unique_id = f"{data.first_name}_{Defaults.BUS}_{attribute_name}".lower()
-        self._student_id = data.student_id
-        self.data_key = attribute_name
-        self._sensor_data = None
-        self._sensor_data = _get_state(self, data, self.data_key)
-        self._attr_device_info = Defaults.get_device_info(self, data)
+        self._student = student
+        self.entity_description = description
+        self.icon = description.icon
+
+    @property
+    def device_info(self) -> DeviceInfo | None:
+        """Return device information for this sensor."""
+        return get_device_info(self._student)
+
+    @property
+    def name(self) -> str | None:
+        """Return the name of this device."""
+        return f"{self._student.first_name} {BUS} {self.entity_description.name}"
+
+    @property
+    def unique_id(self) -> str | None:
+        """Return a unique identifier for this sensor."""
+        return f"{self._student.first_name}_{BUS}_{self.entity_description.key}".lower()
 
     @property
     def native_value(self) -> StateType:
-        """Return the value reported by the sensor."""
-        return self._sensor_data
+        """Return the state of the sensor."""
+        return self.entity_description.value_fn(self._student)
 
     @callback
     def _handle_coordinator_update(self):
         """Handle updated data from the coordinator."""
         if len(self.coordinator.data) == 0:
             return
-        data = self.coordinator.data[self._student_id]
-        self._sensor_data = _get_state(self, data, self.data_key)
-        self.async_write_ha_state()
-
-
-class HCBBinarySensor(CoordinatorEntity[StudentData], BinarySensorEntity):
-    """Defines a single bus sensor."""
-
-    def __init__(
-        self, coordinator: HCBDataCoordinator, key: str, attribute_name: str
-    ) -> None:
-        """Pass coordinator to CoordinatorEntity."""
-        super().__init__(coordinator)
-        data = coordinator.data[key]
-        self.name = f"{data.first_name} {Defaults.BUS} {attribute_name}"
-        self.unique_id = f"{data.first_name}_{Defaults.BUS}_{attribute_name}".lower()
-        self._student_id = data.student_id
-        self.data_key = attribute_name
-        self._sensor_data = _get_state(self, data, self.data_key)
-        self._attr_device_info = Defaults.get_device_info(self, data)
-
-    @property
-    def is_on(self) -> StateType:
-        """Return the value reported by the sensor."""
-        return self._sensor_data
-
-    @callback
-    def _handle_coordinator_update(self):
-        """Handle updated data from the coordinator."""
-        if len(self.coordinator.data) == 0:
-            return
-        data = self.coordinator.data[self._student_id]
-        self._sensor_data = _get_state(self, data, self.data_key)
+        self._student = self.coordinator.data[self._student.student_id]
         self.async_write_ha_state()

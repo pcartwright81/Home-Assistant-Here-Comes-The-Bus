@@ -2,8 +2,6 @@
 
 from datetime import datetime, time
 
-_no_time = time(0, 0, 0)
-
 
 class StudentData:
     """Define a data update enitity."""
@@ -23,9 +21,15 @@ class StudentData:
         self.address: str = None
         self.message_code: str = None
         self.display_on_map: bool = None
-        self.am_school_arrival_time: time = None
-        self.pm_stop_arrival_time: time = None
+        self.am_arrival_time: datetime = None
+        self.pm_arrival_time: datetime = None
         self.am_start_time: time = time(6, 0, 0)
         self.pm_start_time: time = time(14, 0, 0)
-        self.am_stops_done: bool = self.am_school_arrival_time != _no_time
-        self.pm_stops_done: bool = self.pm_stop_arrival_time != _no_time
+
+    def am_stops_done(self):
+        """Return true if the am stops are done."""
+        return self.am_arrival_time.hour != 0
+
+    def pm_stops_done(self):
+        """Return true if the pm stops are done."""
+        return self.pm_arrival_time.hour != 0

@@ -1,10 +1,7 @@
 {
-  "title": "Here comes the bus",
   "config": {
     "step": {
       "user": {
-        "title": "Connect to here comes the bus",
-        "description": "Enter you information in the fields below.",
         "data": {
           "username": "Username",
           "password": "Password",
