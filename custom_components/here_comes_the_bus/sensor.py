@@ -1,41 +1,47 @@
 """Define sensors."""
 
 from collections.abc import Callable
-from datetime import datetime
+from datetime import datetime, time
 from typing import Any
 
 from attr import dataclass
 from homeassistant.components.sensor import SensorEntity, SensorEntityDescription
+from homeassistant.components.sensor.const import SensorDeviceClass
+from homeassistant.const import (
+    ATTR_LATITUDE,
+    ATTR_LONGITUDE,
+    UnitOfSpeed,
+)
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
+from . import format_message_code
 from .const import (
     ATTR_ADDRESS,
     ATTR_AM_ARRIVAL_TIME,
     ATTR_BUS_NAME,
     ATTR_HEADING,
-    ATTR_LATITUDE,
     ATTR_LOG_TIME,
-    ATTR_LONGITUDE,
     ATTR_MESSAGE_CODE,
     ATTR_PM_ARRIVAL_TIME,
     ATTR_SPEED,
-    CONF_ADD_SENSORS,
 )
 from .coordinator import HCBDataCoordinator
 from .data import HCBConfigEntry, StudentData
 from .entity import HCBEntity
 
-type StateType = str | datetime | float | None
+type StateType = str | datetime | time | float | None
 DEFAULT_ICON = "def_icon"
 
 
 @dataclass(frozen=True, kw_only=True)
 class HCBSensorEntityDescription(SensorEntityDescription, frozen_or_thawed=True):
-    """A class that describes ThinQ sensor entities."""
+    """A class that describes sensor entities."""
 
     unit_fn: Callable[[Any], str] | None = None
-    value_fn: Callable[[StudentData], float | str | datetime | None] | None = None
+    value_fn: Callable[[StudentData], float | str | datetime | time | None] | None = (
+        None
+    )
 
 
 ENTITY_DESCRIPTIONS: tuple[HCBSensorEntityDescription, ...] = (
@@ -43,61 +49,55 @@ ENTITY_DESCRIPTIONS: tuple[HCBSensorEntityDescription, ...] = (
         key=ATTR_BUS_NAME,
         name="Number",
         value_fn=lambda x: x.bus_name,
-        icon="mdi:bus",
     ),
     HCBSensorEntityDescription(
         key=ATTR_SPEED,
         name="Speed",
+        device_class=SensorDeviceClass.SPEED,
+        native_unit_of_measurement=UnitOfSpeed.MILES_PER_HOUR,
         value_fn=lambda x: x.speed,
-        icon="mdi:bus",
     ),
     HCBSensorEntityDescription(
         key=ATTR_MESSAGE_CODE,
-        name="Message code",
-        value_fn=lambda x: x.message_code,
-        icon="mdi:bus",
-    ),
-    HCBSensorEntityDescription(
-        key=ATTR_LOG_TIME,
-        name="Log time",
-        value_fn=lambda x: x.log_time,
-        icon="mdi:bus",
+        name="Message",
+        value_fn=lambda x: format_message_code(x.message_code),
     ),
     HCBSensorEntityDescription(
         key=ATTR_LATITUDE,
         name="Latitude",
+        suggested_display_precision=2,
         value_fn=lambda x: x.latitude,
-        icon="mdi:bus",
     ),
     HCBSensorEntityDescription(
         key=ATTR_LONGITUDE,
         name="Longitude",
+        suggested_display_precision=2,
         value_fn=lambda x: x.longitude,
-        icon="mdi:bus",
     ),
     HCBSensorEntityDescription(
         key=ATTR_ADDRESS,
         name="Address",
         value_fn=lambda x: x.address,
-        icon="mdi:bus",
     ),
     HCBSensorEntityDescription(
         key=ATTR_HEADING,
         name="Heading",
         value_fn=lambda x: x.heading,
-        icon="mdi:bus",
+    ),
+    HCBSensorEntityDescription(
+        key=ATTR_LOG_TIME,
+        name="Log time",
+        value_fn=lambda x: x.log_time,
     ),
     HCBSensorEntityDescription(
         key=ATTR_AM_ARRIVAL_TIME,
         name="AM arrival time",
         value_fn=lambda x: x.am_arrival_time,
-        icon="mdi:bus",
     ),
     HCBSensorEntityDescription(
         key=ATTR_PM_ARRIVAL_TIME,
         name="PM arrival time",
         value_fn=lambda x: x.pm_arrival_time,
-        icon="mdi:bus",
     ),
 )
 
@@ -108,9 +108,6 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up bus sensors."""
-    if bool(entry.data.get(CONF_ADD_SENSORS, True)) is not True:
-        return
-
     async_add_entities(
         HCBSensor(entry.runtime_data.coordinator, entity_description, student)
         for entity_description in ENTITY_DESCRIPTIONS

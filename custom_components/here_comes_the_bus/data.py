@@ -36,14 +36,14 @@ class StudentData:
         self.longitude: float | None = None
         self.log_time: datetime | None = None
         self.ignition: bool | None = None
-        self.latent: str | None = None
+        self.latent: bool | None = None
         self.heading: str | None = None
         self.speed: int | None = None
         self.address: str | None = None
         self.message_code: int | None = None
         self.display_on_map: bool | None = None
-        self.am_arrival_time: datetime | None = None
-        self.pm_arrival_time: datetime | None = None
+        self.am_arrival_time: time | None = None
+        self.pm_arrival_time: time | None = None
         self.am_start_time: time = time(6, 0, 0)
         self.pm_start_time: time = time(14, 0, 0)
 

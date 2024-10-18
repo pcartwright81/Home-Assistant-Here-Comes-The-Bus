@@ -2,15 +2,13 @@
 
 import homeassistant.helpers.config_validation as cv
 import voluptuous as vol
-from hcb_soap_client import HcbSoapClient
+from hcb_soap_client.hcb_soap_client import HcbSoapClient
 from homeassistant import config_entries, data_entry_flow
 from homeassistant.auth.providers.homeassistant import InvalidAuth
 from homeassistant.const import CONF_PASSWORD, CONF_USERNAME, __version__
 
 from . import is_valid_ha_version
 from .const import (
-    CONF_ADD_DEVICE_TRACKER,
-    CONF_ADD_SENSORS,
     CONF_SCHOOL_CODE,
     CONF_UPDATE_INTERVAL,
     DOMAIN,
@@ -24,8 +22,6 @@ DATA_SCHEMA = vol.Schema(
         vol.Required(CONF_USERNAME): cv.string,
         vol.Required(CONF_PASSWORD): cv.string,
         vol.Required(CONF_SCHOOL_CODE): cv.string,
-        vol.Optional(CONF_ADD_DEVICE_TRACKER, default=True): cv.boolean,
-        vol.Optional(CONF_ADD_SENSORS, default=True): cv.boolean,
         vol.Optional(CONF_UPDATE_INTERVAL, default=20): cv.positive_int,
     }
 )
