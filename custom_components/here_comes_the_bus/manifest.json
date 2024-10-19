@@ -1,12 +1,16 @@
 {
   "domain": "here_comes_the_bus",
   "name": "Here Comes The Bus",
-  "codeowners": ["@pcartwright81"],
+  "codeowners": [
+    "@pcartwright81"
+  ],
   "config_flow": true,
   "dependencies": [],
   "documentation": "https://github.com/pcartwright81/Home-Assistant-Here-Comes-The-Bus",
   "iot_class": "cloud_polling",
   "issue_tracker": "https://github.com/pcartwright81/Home-Assistant-Here-Comes-The-Bus/issues",
-  "requirements": ["hcb_soap_client>=0.0.3"],
-  "version": "0.0.1"
+  "requirements": [
+    "hcb_soap_client==0.0.6"
+  ],
+  "version": "0.0.2"
 }

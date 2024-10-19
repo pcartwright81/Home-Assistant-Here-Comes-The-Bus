@@ -2,11 +2,11 @@
 default_config:
 
 # https://www.home-assistant.io/integrations/homeassistant/
-homeassistant:
-  debug: true
+# homeassistant:
+#   debug: true
 
 # https://www.home-assistant.io/integrations/logger/
 logger:
   default: info
-  logs:
-    custom_components.here_comes_the_bus: debug
+  # logs:
+  #   custom_components.here_comes_the_bus: debug

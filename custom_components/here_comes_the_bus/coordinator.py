@@ -71,8 +71,8 @@ class HCBDataCoordinator(DataUpdateCoordinator):
                 student.student_id,
                 HcbSoapClient.PM_ID,
             )
-            if pm_stops_and_scans.student_stops is None:
-                LOGGER.debug("API has cleared most of the data right now.")
+            if len(pm_stops_and_scans.student_stops) == 0:
+                # the api does not return data for anyone
                 return
             # this gives the same info in am and pm, so don't need a check
             self._update_vehicle_location(
