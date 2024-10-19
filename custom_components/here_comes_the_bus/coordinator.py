@@ -3,7 +3,6 @@
 from calendar import SATURDAY
 from datetime import datetime, timedelta
 
-from dateutil import parser
 from hcb_soap_client.hcb_soap_client import HcbSoapClient
 from hcb_soap_client.stop_response import StopResponse, StudentStop, VehicleLocation
 from homeassistant.const import CONF_PASSWORD, CONF_USERNAME
@@ -181,13 +180,3 @@ class HCBDataCoordinator(DataUpdateCoordinator):
             if stop.stop_type == "Stop" and stop.time_of_day_id == HcbSoapClient.PM_ID:
                 student.pm_arrival_time = stop.arrival_time
                 break
-
-    def _convert_to_bool(self, str_to_convert: str | None) -> bool:
-        """Convert Y to True."""
-        return str_to_convert == "Y"
-
-    def _convert_to_date_time(self, dt_str: str | None) -> datetime | None:
-        if dt_str is None:
-            return None
-        parsed = parser.parse(dt_str)
-        return parsed.replace(tzinfo=dt_util.get_default_time_zone())
