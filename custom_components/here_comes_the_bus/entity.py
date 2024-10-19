@@ -46,3 +46,8 @@ class HCBEntity(CoordinatorEntity[HCBDataCoordinator]):
     def unique_id(self) -> str | None:
         """Return a unique identifier for this sensor."""
         return f"{self.student.first_name}_{BUS}_{self.entity_description.key}".lower()
+
+    @property
+    def icon(self) -> str | None:
+        """Return the icon to use in the frontend."""
+        return "mdi:bus"

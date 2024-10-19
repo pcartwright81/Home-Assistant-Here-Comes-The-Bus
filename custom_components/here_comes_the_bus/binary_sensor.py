@@ -10,7 +10,7 @@ from homeassistant.components.binary_sensor import (
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import ATTR_DISPLAY_ON_MAP, ATTR_IGNITION, CONF_ADD_SENSORS
+from .const import ATTR_DISPLAY_ON_MAP, ATTR_IGNITION
 from .coordinator import HCBDataCoordinator
 from .data import HCBConfigEntry, StudentData
 from .entity import HCBEntity
@@ -23,7 +23,7 @@ DEFAULT_ICON = "def_icon"
 class HCBBinarySensorEntityDescription(
     BinarySensorEntityDescription, frozen_or_thawed=True
 ):
-    """A class that describes Here comes the bus binary sensor entities."""
+    """A class that describes binary sensor entities."""
 
     icon_on: str | None = None
     value_fn: Callable[[StudentData], bool | None] | None = None
@@ -53,14 +53,11 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up the binary_sensor platform."""
-    if bool(entry.data.get(CONF_ADD_SENSORS, True)) is not True:
-        return
-    sensors = [
+    async_add_entities(
         HCBBinarySensor(entry.runtime_data.coordinator, entity_description, student)
         for entity_description in ENTITY_DESCRIPTIONS
         for student in entry.runtime_data.coordinator.data.values()
-    ]
-    async_add_entities(sensors)
+    )
 
 
 class HCBBinarySensor(HCBEntity, BinarySensorEntity):
