@@ -13,7 +13,7 @@ from homeassistant.util import dt as dt_util
 from .const import CONF_SCHOOL_CODE, CONF_UPDATE_INTERVAL, DOMAIN, HMS, LOGGER
 from .data import HCBConfigEntry, StudentData
 
-_show_mock = True
+_show_mock = False
 
 
 class HCBDataCoordinator(DataUpdateCoordinator):
