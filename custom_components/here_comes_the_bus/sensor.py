@@ -8,8 +8,6 @@ from attr import dataclass
 from homeassistant.components.sensor import SensorEntity, SensorEntityDescription
 from homeassistant.components.sensor.const import SensorDeviceClass
 from homeassistant.const import (
-    ATTR_LATITUDE,
-    ATTR_LONGITUDE,
     UnitOfSpeed,
 )
 from homeassistant.core import HomeAssistant, callback
@@ -71,20 +69,6 @@ ENTITY_DESCRIPTIONS: tuple[HCBSensorEntityDescription, ...] = (
         key=ATTR_MESSAGE_CODE,
         name="Message",
         value_fn=lambda x: format_message_code(x.message_code),
-    ),
-    HCBSensorEntityDescription(
-        key=ATTR_LATITUDE,
-        name="Latitude",
-        device_class=SensorDeviceClass.TEMPERATURE,
-        suggested_display_precision=2,
-        value_fn=lambda x: x.latitude,
-    ),
-    HCBSensorEntityDescription(
-        key=ATTR_LONGITUDE,
-        name="Longitude",
-        device_class=SensorDeviceClass.DISTANCE,  # Help, I'm just trying to format.
-        suggested_display_precision=2,
-        value_fn=lambda x: x.longitude,
     ),
     HCBSensorEntityDescription(
         key=ATTR_ADDRESS,

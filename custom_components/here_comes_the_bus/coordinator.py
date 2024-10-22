@@ -242,7 +242,8 @@ class HCBDataCoordinator(DataUpdateCoordinator):
         Update the student's AM and PM arrival times based on the provided stops.
 
         Args:
-            student_data (StudentData): The student whose arrival times are being updated.
+            student_data (StudentData): The student whose arrival times are
+            being updated.
             stops (list[StudentStop]): A list of stops to check for AM and PM times.
 
         """
