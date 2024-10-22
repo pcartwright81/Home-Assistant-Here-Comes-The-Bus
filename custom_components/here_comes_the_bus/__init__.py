@@ -68,16 +68,6 @@ def is_valid_ha_version() -> bool:
     return is_min_ha_version(MIN_HA_MAJ_VER, MIN_HA_MIN_VER)
 
 
-def format_message_code(message_code: int | None) -> str | None:
-    """Format the message code to a string value."""
-    if message_code == 0:
-        return "In Service"
-    if message_code is None or message_code == 2:  # noqa: PLR2004 fix this later
-        return "Out Of Service"
-    LOGGER.error("Message code was %s", message_code)
-    return str(message_code)
-
-
 def _notify_message(
     hass: HomeAssistant, notification_id: str, title: str, message: str
 ) -> None:
