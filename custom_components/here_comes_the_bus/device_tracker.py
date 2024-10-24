@@ -28,7 +28,7 @@ class HCBTrackerEntityDescription(TrackerEntityDescription, frozen_or_thawed=Tru
 DEVICE_TRACKERS = [
     HCBTrackerEntityDescription(
         name="",
-        key="device_location",
+        key="location",
         latitude_fn=lambda x: x.latitude,
         longitude_fn=lambda x: x.longitude,
         address_fn=lambda x: x.address,
@@ -77,6 +77,11 @@ class HCBTracker(HCBEntity, TrackerEntity):
     def longitude(self) -> float | None:
         """Return longitude value of the device."""
         return self.entity_description.longitude_fn(self.student)
+
+    @cached_property
+    def location_accuracy(self) -> int:
+        """Return the gps accuracy of the device."""
+        return 100
 
     @callback
     def _handle_coordinator_update(self) -> None:

@@ -1,0 +1,49 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Run Home Assistant",
+            "type": "shell",
+            "command": "scripts/run",
+            "problemMatcher": []
+        },
+        {
+            "label": "Debug Home Assistant",
+            "type": "shell",
+            "command": "scripts/debug",
+            "isBackground": true,
+            "problemMatcher": [
+                {
+                    "owner": "homeassistant",
+                    "pattern": [
+                        {
+                            "regexp": "(.?)",
+                            "file": 1,
+                            "location": 1,
+                            "message": 1
+                        }
+                    ],
+                    "background": {
+                        "activeOnStart": true,
+                        "beginsPattern": ".?",
+                        "endsPattern": "^\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}.\\d{3}",
+                    }
+                }
+            ]
+        },
+        {
+            "label": "Terminate Debug",
+            "command": "echo ${input:terminate}",
+            "type": "shell",
+            "problemMatcher": []
+        }
+    ],
+    "inputs": [
+        {
+            "id": "terminate",
+            "type": "command",
+            "command": "workbench.action.tasks.terminate",
+            "args": "Debug Home Assistant"
+        }
+    ]
+}
