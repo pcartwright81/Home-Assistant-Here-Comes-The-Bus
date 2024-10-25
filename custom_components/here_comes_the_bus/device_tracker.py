@@ -1,7 +1,6 @@
 """Define a device tracker."""
 
 from collections.abc import Callable
-from functools import cached_property
 
 from attr import dataclass
 from homeassistant.components.device_tracker import (
