@@ -15,6 +15,7 @@ ignore = [
     "COM812", # incompatible with formatter
     "ISC001", # incompatible with formatter
     "EXE002", # shebang-missing-executable-file
+    "S101", #use of assert
 ]
 
 [lint.flake8-pytest-style]

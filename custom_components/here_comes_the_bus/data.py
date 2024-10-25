@@ -44,17 +44,6 @@ class StudentData:
         self.display_on_map: bool | None = None
         self.am_arrival_time: time | None = None
         self.pm_arrival_time: time | None = None
-        self.am_start_time: time = time(6, 0, 0)
-        self.pm_start_time: time = time(14, 0, 0)
-
-    def am_stops_done(self) -> bool:
-        """Return true if the am stops are done."""
-        if self.am_arrival_time is None:
-            return False
-        return self.am_arrival_time.hour != 0
-
-    def pm_stops_done(self) -> bool:
-        """Return true if the pm stops are done."""
-        if self.pm_arrival_time is None:
-            return False
-        return self.pm_arrival_time.hour != 0
+        self.am_start_time: time = time(6)
+        self.mid_start_time: time = time(12)
+        self.pm_start_time: time = time(14)

@@ -6,22 +6,18 @@ https://github.com/pcartwright81/Home-Assistant-Here-Comes-The-Bus
 """
 
 from homeassistant.components import persistent_notification
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import (
-    CONF_PASSWORD,
-    CONF_USERNAME,
     MAJOR_VERSION,
     MINOR_VERSION,
     Platform,
     __version__,
 )
-from homeassistant.core import HomeAssistant, callback
+from homeassistant.core import HomeAssistant
 from homeassistant.loader import async_get_loaded_integration
 
 from custom_components.here_comes_the_bus.coordinator import HCBDataCoordinator
 
 from .const import (
-    CONF_SCHOOL_CODE,
     DOMAIN,
     HERE_COMES_THE_BUS,
     LOGGER,
@@ -45,7 +41,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: HCBConfigEntry) -> bool:
         _notify_message(hass, "inv_ha_version", HERE_COMES_THE_BUS, msg)
         LOGGER.warning(msg)
         return False
-    _fix_config(hass, entry)
     coordinator = HCBDataCoordinator(hass, entry)
     entry.runtime_data = HCBData(
         integration=async_get_loaded_integration(hass, entry.domain),
@@ -77,18 +72,6 @@ def _notify_message(
     )
 
 
-@callback
-def _fix_config(hass: HomeAssistant, entry: ConfigEntry) -> None:
-    """Migrate an old config entry if available."""
-    if "Username" not in entry.data:
-        return
-    new_data = {}
-    new_data[CONF_USERNAME] = entry.data[CONF_USERNAME.title()]
-    new_data[CONF_PASSWORD] = entry.data[CONF_PASSWORD.title()]
-    new_data[CONF_SCHOOL_CODE] = entry.data["SchoolCode"]
-    hass.config_entries.async_update_entry(entry, data=new_data)
-
-
 async def async_unload_entry(
     hass: HomeAssistant,
     entry: HCBConfigEntry,
@@ -102,5 +85,4 @@ async def async_reload_entry(
     entry: HCBConfigEntry,
 ) -> None:
     """Reload config entry."""
-    await async_unload_entry(hass, entry)
-    await async_setup_entry(hass, entry)
+    await hass.config_entries.async_reload(entry.entry_id)

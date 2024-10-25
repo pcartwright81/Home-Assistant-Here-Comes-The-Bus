@@ -1,0 +1,18 @@
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+testpaths = [
+    "tests",
+]
+norecursedirs = [
+    ".git",
+    "testing_config",
+]
+
+addopts = "--timeout=150 --cov-report=xml:coverage.xml --cov-report=term-missing --cov=custom_components.here_comes_the_bus --cov-fail-under=5 --disable-socket --allow-unix-socket"
+
+[tool.coverage.report]
+exclude_also = [
+    "raise NotImplementedError",
+    "if TYPE_CHECKING:"
+]

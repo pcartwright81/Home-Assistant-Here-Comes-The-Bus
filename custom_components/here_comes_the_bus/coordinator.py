@@ -1,7 +1,7 @@
 """Coordinator file for Here comes the bus Home assistant integration."""
 
 from calendar import SATURDAY
-from datetime import datetime, timedelta
+from datetime import time, timedelta
 
 from hcb_soap_client.hcb_soap_client import HcbSoapClient
 from hcb_soap_client.stop_response import StopResponse, StudentStop, VehicleLocation
@@ -54,34 +54,38 @@ class HCBDataCoordinator(DataUpdateCoordinator):
         self._parent_id = user_info.account_id
         self.data = {}
 
+        # first get the list of students and add them to the data
         for student in user_info.students:
             student_data = StudentData(student.first_name, student.student_id)
             self.data[student.student_id] = student_data
+
+        # next get the stop info and set fields based what the api says
+        for student_data in self.data.values():
             am_stops_and_scans: StopResponse = await self._client.get_stop_info(
                 self._school_id,
                 self._parent_id,
-                student.student_id,
-                HcbSoapClient.AM_ID,
+                student_data.student_id,
+                self._get_time_of_day_id(time(7)),
             )
             pm_stops_and_scans: StopResponse = await self._client.get_stop_info(
                 self._school_id,
                 self._parent_id,
-                student.student_id,
-                HcbSoapClient.PM_ID,
+                student_data.student_id,
+                self._get_time_of_day_id(time(14)),
             )
             # this gives the same info in am and pm, so don't need a check
             self._update_vehicle_location(
                 student_data, am_stops_and_scans.vehicle_location
             )
+
+            # the api does not return data for anyone try back after 5am
             if len(pm_stops_and_scans.student_stops) == 0:
-                # the api does not return data for anyone
                 return
-            am_stops = am_stops_and_scans.student_stops
-            pm_stops = pm_stops_and_scans.student_stops
-            student_data.am_start_time = am_stops[0].tier_start_time.time()
-            student_data.pm_start_time = pm_stops[0].tier_start_time.time()
-            self._update_stops(student_data, am_stops)
-            self._update_stops(student_data, pm_stops)
+            # update the stops
+            self._update_stops(student_data, am_stops_and_scans.student_stops)
+            self._update_stops(student_data, pm_stops_and_scans.student_stops)
+
+            # log the data
             LOGGER.debug(
                 "%s AM start time %r",
                 student.first_name,
@@ -95,12 +99,12 @@ class HCBDataCoordinator(DataUpdateCoordinator):
             LOGGER.debug(
                 "%s AM stops done %r",
                 student.first_name,
-                student_data.am_stops_done(),
+                student_data.am_arrival_time is not None,
             )
             LOGGER.debug(
                 "%s PM stops done %r",
                 student.first_name,
-                student_data.pm_stops_done(),
+                student_data.pm_arrival_time is not None,
             )
 
     async def _async_update_data(self) -> dict[str, StudentData]:
@@ -118,91 +122,56 @@ class HCBDataCoordinator(DataUpdateCoordinator):
             and values are StudentData objects.
 
         """
-        time_now = dt_util.now()  # Get the current local time
-
-        # Determine the time of day ID (AM or PM)
-        time_of_day_id = HcbSoapClient.PM_ID  # Default to PM
-        if self._is_morning(time_now):
-            time_of_day_id = HcbSoapClient.AM_ID
-
         # Iterate through each student and update their data
-        for student_id, student_update in self.data.items():
-            if not self._bus_is_moving(time_now, student_update):
-                continue  # Skip if the bus is not moving for this student
-
+        for student_data in self.data.values():
+            if not self._student_is_moving(student_data):
+                return {}
             # Fetch stop information from the HCB service
             stops = await self._client.get_stop_info(
-                self._school_id, self._parent_id, student_id, time_of_day_id
+                self._school_id,
+                self._parent_id,
+                student_data.student_id,
+                self._get_time_of_day_id(dt_util.now().time()),
             )
-
             # Update the student's data with the retrieved information
-            self._update_vehicle_location(student_update, stops.vehicle_location)
-            self._update_stops(student_update, stops.student_stops)
+            self._update_vehicle_location(student_data, stops.vehicle_location)
+            self._update_stops(student_data, stops.student_stops)
 
         return self.data  # Return the updated data dictionary
 
-    def _bus_is_moving(self, time_now: datetime, student_update: StudentData) -> bool:
-        """
-        Check if the bus is currently in operation (moving).
-
-        This method determines if the school bus is actively transporting students
-        based on the current time, the student's schedule, and whether they have
-        completed their assigned stops for the day.
-
-        Args:
-            time_now: The current time as a datetime object.
-            student_update: An object containing the student's data
-                             (including their schedule and stop completion status).
-
-        Returns:
-            True if the bus is moving, False otherwise.
-
-        """
-        if _show_mock:
-            return True
-
-        if time_now.weekday() >= SATURDAY:
-            LOGGER.debug("It's the weekend")
+    @staticmethod
+    def _student_is_moving(student_data: StudentData) -> bool:
+        """Check to see if the student should be moving on the bus."""
+        dt_now = dt_util.now()
+        if dt_now.weekday() >= SATURDAY:
+            LOGGER.debug("It's the weekend for %s", student_data.first_name)
             return False
-
-        if self._is_morning(time_now):
-            if time_now.time() < student_update.am_start_time:
+        time_now = dt_now.time()
+        if time_now <= time(12):
+            if time_now < student_data.am_start_time:
                 LOGGER.debug(
-                    "It's too early in the morning for %s", student_update.first_name
+                    "It's too early in the morning for %s", student_data.first_name
                 )
                 return False
-            if self._am_stops_done_for_today(student_update, time_now):
-                LOGGER.debug("AM stops are done for %s", student_update.first_name)
+            if time_now >= time(9):
+                LOGGER.debug("School has started")
+        elif time_now >= time(12):
+            if dt_now.time() < student_data.pm_start_time:
+                LOGGER.debug(
+                    "It's too early in the afternoon for %s", student_data.first_name
+                )
                 return False
-        elif self._pm_stops_done_for_today(
-            student_update, time_now
-        ):  # It's not morning
-            LOGGER.debug("PM stops are done for %s", student_update.first_name)
-            return False
-
+            if dt_now.time() >= time(17):
+                LOGGER.debug("It's too late for %s", student_data.first_name)
+                return False
+        LOGGER.debug("Updating data for %s", student_data.first_name)
         return True
 
-    def _is_morning(self, time_now: datetime) -> bool:
-        """Return True if it is morning."""
-        _noon = 12  # Explicitly define noon
-        return time_now.hour < _noon
-
+    @staticmethod
     def _update_vehicle_location(
-        self, student_data: StudentData, vehicle_location: VehicleLocation
+        student_data: StudentData, vehicle_location: VehicleLocation
     ) -> None:
-        """
-        Update the student's vehicle location data based on the VehicleLocation object.
-
-        If vehicle_location is None and _show_mock_data is enabled, mock data is used.
-
-        Args:
-            student_data (StudentData): The student object to update with
-            vehicle location.
-            vehicle_location (VehicleLocation): The current location details of the bus.
-
-        """
         if vehicle_location is not None:
-            # Update student data from vehicle location
             student_data.address = vehicle_location.address
             student_data.bus_name = vehicle_location.name
             student_data.display_on_map = vehicle_location.display_on_map
@@ -216,37 +185,37 @@ class HCBDataCoordinator(DataUpdateCoordinator):
             )
             student_data.message_code = vehicle_location.message_code
             student_data.speed = vehicle_location.speed
-        elif _show_mock:
-            # Use mock data if no vehicle location is provided and
-            # _show_mock_data is True
-            date_now = dt_util.now().replace(microsecond=0)
+            return
+        if _show_mock is False:
+            student_data.address = None
+            student_data.bus_name = None
+            student_data.display_on_map = None
+            student_data.heading = None
+            student_data.ignition = None
+            student_data.latent = None
+            student_data.latitude = None
+            student_data.longitude = None
+            student_data.log_time = None
+            student_data.message_code = None
+            student_data.speed = None
+            return
+        date_now = dt_util.now().replace(microsecond=0)
+        student_data.address = "17606 Wall Triana Hwy"
+        student_data.bus_name = "99-99"
+        student_data.display_on_map = True
+        student_data.heading = "E"
+        student_data.ignition = True
+        student_data.latent = False
+        student_data.latitude = 34.807732
+        student_data.longitude = -86.749863
+        student_data.log_time = date_now
+        student_data.message_code = 2
+        student_data.speed = 100
+        student_data.am_arrival_time = date_now.time()
+        student_data.pm_arrival_time = date_now.time()
 
-            student_data.address = "17606 Wall Triana Hwy"
-            student_data.bus_name = "99-99"
-            student_data.display_on_map = True
-            student_data.heading = "E"
-            student_data.ignition = True
-            student_data.latent = False
-            student_data.latitude = 34.807732
-            student_data.longitude = -86.749863
-            student_data.log_time = date_now
-            student_data.message_code = 2
-            student_data.speed = 100
-            student_data.am_arrival_time = date_now.time()
-            student_data.pm_arrival_time = date_now.time()
-
-    def _update_stops(
-        self, student_data: StudentData, stops: list[StudentStop]
-    ) -> None:
-        """
-        Update the student's AM and PM arrival times based on the provided stops.
-
-        Args:
-            student_data (StudentData): The student whose arrival times are
-            being updated.
-            stops (list[StudentStop]): A list of stops to check for AM and PM times.
-
-        """
+    @staticmethod
+    def _update_stops(student_data: StudentData, stops: list[StudentStop]) -> None:
         if _show_mock:
             return
         for stop in stops:
@@ -254,52 +223,38 @@ class HCBDataCoordinator(DataUpdateCoordinator):
             if (
                 stop.stop_type == "School"
                 and stop.time_of_day_id == HcbSoapClient.AM_ID
-                and not student_data.am_stops_done()
             ):
-                student_data.am_arrival_time = stop.arrival_time
+                student_data.am_arrival_time = HCBDataCoordinator._fix_time(
+                    stop.arrival_time
+                )
+                student_data.am_start_time = stop.tier_start_time
                 break
 
             # Check for regular stop in the afternoon
             if stop.stop_type == "Stop" and stop.time_of_day_id == HcbSoapClient.PM_ID:
-                student_data.pm_arrival_time = stop.arrival_time
+                student_data.pm_arrival_time = HCBDataCoordinator._fix_time(
+                    stop.arrival_time
+                )
+                student_data.pm_start_time = stop.tier_start_time
                 break
 
-    def _am_stops_done_for_today(
-        self, student_data: StudentData, time_now: datetime
-    ) -> bool:
-        """
-        Check if the student has completed their AM stops for today.
+    @staticmethod
+    def _fix_time(input_time: time | None) -> time | None:
+        """Make 00:00 appear as none, and replace microseconds."""
+        if input_time is None:
+            return None
+        if input_time == time(0):
+            return None
+        return input_time.replace(microsecond=0)
 
-        Args:
-            student_data: An object containing the student's data.
-            time_now: The current time as a datetime object.
-
-        Returns:
-            True if AM stops are done for today, False otherwise.
-
-        """
-        return (
-            student_data.am_stops_done()
-            and student_data.log_time is not None
-            and student_data.log_time.date() == time_now.date()
-        )
-
-    def _pm_stops_done_for_today(
-        self, student_data: StudentData, time_now: datetime
-    ) -> bool:
-        """
-        Check if the student has completed their PM stops for today.
-
-        Args:
-            student_data: An object containing the student's data.
-            time_now: The current time as a datetime object.
-
-        Returns:
-            True if PM stops are done for today, False otherwise.
-
-        """
-        return (
-            student_data.pm_stops_done()
-            and student_data.log_time is not None
-            and student_data.log_time.date() == time_now.date()
-        )
+    @staticmethod
+    def _get_time_of_day_id(check_time: time) -> str:
+        """Get the time of day id right now."""
+        # before 10 is morning
+        if check_time < time(10):
+            return "55632A13-35C5-4169-B872-F5ABDC25DF6A"
+        # between 10 and 13:30 is mid
+        if check_time > time(10) and check_time < time(13, 30):
+            return "27AADCA0-6D7E-4247-A80F-7847C448EEED"
+        # default to night
+        return "6E7A050E-0295-4200-8EDC-3611BB5DE1C1"

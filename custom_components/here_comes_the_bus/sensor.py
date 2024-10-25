@@ -19,10 +19,8 @@ from .const import (
     ATTR_BUS_NAME,
     ATTR_HEADING,
     ATTR_LOG_TIME,
-    ATTR_MESSAGE_CODE,
     ATTR_PM_ARRIVAL_TIME,
     ATTR_SPEED,
-    LOGGER,
 )
 from .coordinator import HCBDataCoordinator
 from .data import HCBConfigEntry, StudentData
@@ -34,22 +32,6 @@ class HCBSensorEntityDescription(SensorEntityDescription, frozen_or_thawed=True)
     """A class that describes sensor entities."""
 
     value_fn: Callable[[StudentData], float | str | datetime | time | None]
-
-
-def format_message_code(message_code: int | None) -> str:
-    """Format the message code to a string value."""
-    if message_code == 0:
-        return "In Service"
-    if message_code is None or message_code == 2:  # noqa: PLR2004 fix this later
-        return "Out Of Service"
-    LOGGER.error("Message code was %s", message_code)
-    return str(message_code)
-
-
-def _format_time(input_time: time | None) -> str:
-    if input_time is None:
-        return "00:00"
-    return input_time.strftime("%H:%M")
 
 
 ENTITY_DESCRIPTIONS: tuple[HCBSensorEntityDescription, ...] = (
@@ -64,11 +46,6 @@ ENTITY_DESCRIPTIONS: tuple[HCBSensorEntityDescription, ...] = (
         device_class=SensorDeviceClass.SPEED,
         native_unit_of_measurement=UnitOfSpeed.MILES_PER_HOUR,
         value_fn=lambda x: x.speed,
-    ),
-    HCBSensorEntityDescription(
-        key=ATTR_MESSAGE_CODE,
-        name="Message",
-        value_fn=lambda x: format_message_code(x.message_code),
     ),
     HCBSensorEntityDescription(
         key=ATTR_ADDRESS,
@@ -89,12 +66,12 @@ ENTITY_DESCRIPTIONS: tuple[HCBSensorEntityDescription, ...] = (
     HCBSensorEntityDescription(
         key=ATTR_AM_ARRIVAL_TIME,
         name="AM arrival time",
-        value_fn=lambda x: _format_time(x.am_arrival_time),
+        value_fn=lambda x: x.am_arrival_time,
     ),
     HCBSensorEntityDescription(
         key=ATTR_PM_ARRIVAL_TIME,
         name="PM arrival time",
-        value_fn=lambda x: _format_time(x.pm_arrival_time),
+        value_fn=lambda x: x.pm_arrival_time,
     ),
 )
 
