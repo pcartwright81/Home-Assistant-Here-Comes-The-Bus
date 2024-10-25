@@ -1,7 +1,6 @@
 """Define a device tracker."""
 
 from collections.abc import Callable
-from functools import cached_property
 
 from attr import dataclass
 from homeassistant.components.device_tracker import (
@@ -63,22 +62,22 @@ class HCBTracker(HCBEntity, TrackerEntity):
         """Pass coordinator to CoordinatorEntity."""
         super().__init__(coordinator, student, description)
 
-    @cached_property
+    @property
     def location_name(self) -> str | None:
         """Return a location name for the current location of the device."""
         return self.entity_description.address_fn(self.student)
 
-    @cached_property
+    @property
     def latitude(self) -> float | None:
         """Return latitude value of the device."""
         return self.entity_description.latitude_fn(self.student)
 
-    @cached_property
+    @property
     def longitude(self) -> float | None:
         """Return longitude value of the device."""
         return self.entity_description.longitude_fn(self.student)
 
-    @cached_property
+    @property
     def location_accuracy(self) -> int:
         """Return the gps accuracy of the device."""
         return 100

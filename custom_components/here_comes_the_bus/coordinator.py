@@ -140,29 +140,44 @@ class HCBDataCoordinator(DataUpdateCoordinator):
         return self.data  # Return the updated data dictionary
 
     @staticmethod
-    def _student_is_moving(student_data: StudentData) -> bool:
+    def _student_is_moving(student_data: StudentData) -> bool:  # noqa: PLR0911 Will simplify after logging is complete.  Or not...
         """Check to see if the student should be moving on the bus."""
         dt_now = dt_util.now()
+        time_now = dt_now.time()
         if dt_now.weekday() >= SATURDAY:
             LOGGER.debug("It's the weekend for %s", student_data.first_name)
             return False
-        time_now = dt_now.time()
+
         if time_now <= time(12):
             if time_now < student_data.am_start_time:
                 LOGGER.debug(
                     "It's too early in the morning for %s", student_data.first_name
                 )
                 return False
+            if (
+                student_data.am_arrival_time is not None
+                and student_data.log_time is not None
+                and student_data.log_time.date() == dt_now.date()
+            ):
+                LOGGER.debug("%s am stop done.", student_data.first_name)
+                return False
             if time_now >= time(9):
-                LOGGER.debug("School has started")
+                LOGGER.debug("School has started for %s")
         elif time_now >= time(12):
-            if dt_now.time() < student_data.pm_start_time:
+            if time_now < student_data.pm_start_time:
                 LOGGER.debug(
                     "It's too early in the afternoon for %s", student_data.first_name
                 )
                 return False
-            if dt_now.time() >= time(17):
+            if time_now >= time(17):
                 LOGGER.debug("It's too late for %s", student_data.first_name)
+                return False
+            if (
+                student_data.pm_arrival_time is not None
+                and student_data.log_time is not None
+                and student_data.log_time.date() == dt_now.date()
+            ):
+                LOGGER.debug("%s pm stop done.", student_data.first_name)
                 return False
         LOGGER.debug("Updating data for %s", student_data.first_name)
         return True
