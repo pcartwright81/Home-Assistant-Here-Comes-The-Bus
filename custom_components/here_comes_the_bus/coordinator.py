@@ -156,12 +156,12 @@ class HCBDataCoordinator(DataUpdateCoordinator):
             if time_now >= time(9):
                 LOGGER.debug("School has started")
         elif time_now >= time(12):
-            if dt_now.time() < student_data.pm_start_time:
+            if time_now < student_data.pm_start_time:
                 LOGGER.debug(
                     "It's too early in the afternoon for %s", student_data.first_name
                 )
                 return False
-            if dt_now.time() >= time(17):
+            if time_now >= time(17):
                 LOGGER.debug("It's too late for %s", student_data.first_name)
                 return False
         LOGGER.debug("Updating data for %s", student_data.first_name)
