@@ -1,4 +1,4 @@
-# Home-Assistant-Here-Comes-The-Bus
+# Here Comes The Bus for Home Assistant
 
 [![GitHub Release][releases-shield]][releases]
 [![GitHub Activity][commits-shield]][commits]
