@@ -1,4 +1,4 @@
 -r requirements.txt
-pytest==8.3.3
-pytest-homeassistant-custom-component==0.13.174
-pytest-freezer==0.4.8
+pytest
+pytest-homeassistant-custom-component==0.13.175
+pytest-freezer
