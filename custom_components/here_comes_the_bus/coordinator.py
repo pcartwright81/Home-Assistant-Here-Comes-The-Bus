@@ -125,7 +125,7 @@ class HCBDataCoordinator(DataUpdateCoordinator):
         # Iterate through each student and update their data
         for student_data in self.data.values():
             if not self._student_is_moving(student_data):
-                return {}
+                continue
             # Fetch stop information from the HCB service
             stops = await self._client.get_stop_info(
                 self._school_id,
@@ -159,10 +159,11 @@ class HCBDataCoordinator(DataUpdateCoordinator):
                 and student_data.log_time is not None
                 and student_data.log_time.date() == dt_now.date()
             ):
-                LOGGER.debug("%s am stop done.", student_data.first_name)
+                LOGGER.debug("%s am stops done", student_data.first_name)
                 return False
             if time_now >= time(9):
-                LOGGER.debug("School has started for %s")
+                LOGGER.debug("School has started for %s", student_data.first_name)
+                return False
         elif time_now >= time(12):
             if time_now < student_data.pm_start_time:
                 LOGGER.debug(
@@ -177,7 +178,7 @@ class HCBDataCoordinator(DataUpdateCoordinator):
                 and student_data.log_time is not None
                 and student_data.log_time.date() == dt_now.date()
             ):
-                LOGGER.debug("%s pm stop done.", student_data.first_name)
+                LOGGER.debug("%s pm stop done", student_data.first_name)
                 return False
         LOGGER.debug("Updating data for %s", student_data.first_name)
         return True
