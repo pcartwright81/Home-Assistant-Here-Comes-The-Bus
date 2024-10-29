@@ -19,17 +19,3 @@ __min_ha_version__ = f"{MIN_HA_MAJ_VER}.{MIN_HA_MIN_VER}.0"
 # configuration
 CONF_SCHOOL_CODE = "school_code"
 CONF_UPDATE_INTERVAL = "update_interval"
-
-
-# general sensor attributes
-ATTR_BUS_NAME = "bus_name"
-ATTR_SPEED = "speed"
-ATTR_MESSAGE_CODE = "message"
-ATTR_DISPLAY_ON_MAP = "display_on_map"
-ATTR_IGNITION = "ignition"
-ATTR_LOG_TIME = "log_time"
-ATTR_LOG_DATE = "log_date"
-ATTR_ADDRESS = "address"
-ATTR_HEADING = "heading"
-ATTR_AM_ARRIVAL_TIME = "am_arrival"
-ATTR_PM_ARRIVAL_TIME = "pm_arrival"
