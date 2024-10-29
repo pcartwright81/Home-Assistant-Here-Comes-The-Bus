@@ -15,7 +15,6 @@ ignore = [
     "COM812", # incompatible with formatter
     "ISC001", # incompatible with formatter
     "EXE002", # shebang-missing-executable-file
-    "S101", #use of assert
 ]
 
 [lint.flake8-pytest-style]
@@ -26,3 +25,19 @@ keep-runtime-typing = true
 
 [lint.mccabe]
 max-complexity = 25
+
+[lint.per-file-ignores]
+# Ignore `S101` (use of assert)` and `SLF001` (private members)` in path/to/file.py`.
+"tests/__init__.py" = ["S101"]
+"tests/test_binary_sensor.py" = ["S101","SLF001"]
+"tests/test_config_flow.py" = ["S101","SLF001"]
+"tests/test_coordinator.py" = ["S101","SLF001"]
+"tests/test_device_tracker.py" = ["S101","SLF001"]
+"tests/test_entity.py" = ["S101","SLF001"]
+"tests/test_init.py" = ["S101","SLF001"]
+"tests/test_sensor.py" = ["S101","SLF001"]
+
+
+
+
+

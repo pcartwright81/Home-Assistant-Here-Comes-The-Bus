@@ -85,7 +85,6 @@ class HCBTracker(HCBEntity, TrackerEntity):
     @callback
     def _handle_coordinator_update(self) -> None:
         """Handle updated self.student from the coordinator."""
-        if len(self.coordinator.data) == 0:
-            return
-        self.student = self.coordinator.data[self.student.student_id]
-        self.async_write_ha_state()
+        if self.student.student_id in self.coordinator.data:
+            self.student = self.coordinator.data[self.student.student_id]
+            self.async_write_ha_state()

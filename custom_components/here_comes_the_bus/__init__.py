@@ -5,6 +5,7 @@ For more details about this integration, please refer to
 https://github.com/pcartwright81/Home-Assistant-Here-Comes-The-Bus
 """
 
+from hcb_soap_client.hcb_soap_client import HcbSoapClient
 from homeassistant.components import persistent_notification
 from homeassistant.const import (
     MAJOR_VERSION,
@@ -34,15 +35,16 @@ async def async_setup_entry(hass: HomeAssistant, entry: HCBConfigEntry) -> bool:
     """Set up Here Comes the Bus integration from a config entry."""
     if not is_valid_ha_version():
         msg = (
-            "This integration require at least HomeAssistant version "
-            f" {__min_ha_version__}, you are running version {__version__}."
-            " Please upgrade HomeAssistant to continue use this integration."
+            "This integration requires at least HomeAssistant version "
+            f"{__min_ha_version__}, you are running version {__version__}. "
+            "Please upgrade HomeAssistant to continue use this integration."
         )
         _notify_message(hass, "inv_ha_version", HERE_COMES_THE_BUS, msg)
         LOGGER.warning(msg)
         return False
     coordinator = HCBDataCoordinator(hass, entry)
     entry.runtime_data = HCBData(
+        client=HcbSoapClient(),
         integration=async_get_loaded_integration(hass, entry.domain),
         coordinator=coordinator,
     )

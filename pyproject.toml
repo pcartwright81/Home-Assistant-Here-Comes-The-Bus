@@ -9,7 +9,7 @@ norecursedirs = [
     "testing_config",
 ]
 
-addopts = "--timeout=150 --cov-report=xml:coverage.xml --cov-report=term-missing --cov=custom_components.here_comes_the_bus --cov-fail-under=5 --disable-socket --allow-unix-socket"
+addopts = "--timeout=150 --cov-report=xml:coverage.xml --cov-report=term-missing --cov=custom_components.here_comes_the_bus --cov-fail-under=100 --disable-socket --allow-unix-socket"
 
 [tool.coverage.report]
 exclude_also = [
