@@ -10,7 +10,6 @@ from homeassistant.components.binary_sensor import (
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import ATTR_DISPLAY_ON_MAP, ATTR_IGNITION, ATTR_MESSAGE_CODE
 from .coordinator import HCBDataCoordinator
 from .data import HCBConfigEntry, StudentData
 from .entity import HCBEntity
@@ -38,21 +37,21 @@ def _message_code_to_bool(message_code: int | None) -> bool | None:
 
 ENTITY_DESCRIPTIONS: tuple[HCBBinarySensorEntityDescription, ...] = (
     HCBBinarySensorEntityDescription(
-        key=ATTR_IGNITION,
+        key="ignition",
         name="Ignition on",
         icon="mdi:engine-off",
         icon_on="mdi:engine",
         value_fn=lambda x: x.ignition,
     ),
     HCBBinarySensorEntityDescription(
-        key=ATTR_DISPLAY_ON_MAP,
+        key="display_on_map",
         name="Display on map",
         icon="mdi:map-marker-alert",
         icon_on="mdi:map-marker-check",
         value_fn=lambda x: x.display_on_map,
     ),
     HCBBinarySensorEntityDescription(
-        key=ATTR_MESSAGE_CODE,
+        key="message_code",
         name="In Service",
         value_fn=lambda x: _message_code_to_bool(x.message_code),
     ),

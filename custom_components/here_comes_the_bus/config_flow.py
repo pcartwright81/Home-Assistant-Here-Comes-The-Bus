@@ -17,6 +17,7 @@ from .const import (
     __min_ha_version__,
 )
 
+TITLE = HERE_COMES_THE_BUS
 DATA_SCHEMA = vol.Schema(
     {
         vol.Required(CONF_USERNAME): cv.string,
@@ -48,11 +49,7 @@ class HCBConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             )
         if user_input is not None:
             try:
-                _ = await self._test_credentials(
-                    username=user_input[CONF_USERNAME],
-                    password=user_input[CONF_PASSWORD],
-                    schoolcode=user_input[CONF_SCHOOL_CODE],
-                )
+                _ = await self._test_credentials(user_input)
             except InvalidAuth:
                 _errors["base"] = "invalid_auth"
             except Exception:  # noqa: BLE001
@@ -60,7 +57,7 @@ class HCBConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                 _errors["base"] = "unknown"
             else:
                 return self.async_create_entry(
-                    title=HERE_COMES_THE_BUS,
+                    title=TITLE,
                     data=user_input,
                 )
 
@@ -70,9 +67,11 @@ class HCBConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             errors=_errors,
         )
 
-    async def _test_credentials(
-        self, username: str, password: str, schoolcode: str
-    ) -> bool:
+    async def _test_credentials(self, user_input: dict) -> bool:
         """Validate credentials."""
         client = HcbSoapClient()
-        return await client.test_connection(schoolcode, username, password)
+        return await client.test_connection(
+            school_code=user_input[CONF_SCHOOL_CODE],
+            user_name=user_input[CONF_USERNAME],
+            password=user_input[CONF_PASSWORD],
+        )

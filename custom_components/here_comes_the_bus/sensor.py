@@ -13,15 +13,6 @@ from homeassistant.const import (
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import (
-    ATTR_ADDRESS,
-    ATTR_AM_ARRIVAL_TIME,
-    ATTR_BUS_NAME,
-    ATTR_HEADING,
-    ATTR_LOG_TIME,
-    ATTR_PM_ARRIVAL_TIME,
-    ATTR_SPEED,
-)
 from .coordinator import HCBDataCoordinator
 from .data import HCBConfigEntry, StudentData
 from .entity import HCBEntity
@@ -36,42 +27,62 @@ class HCBSensorEntityDescription(SensorEntityDescription, frozen_or_thawed=True)
 
 ENTITY_DESCRIPTIONS: tuple[HCBSensorEntityDescription, ...] = (
     HCBSensorEntityDescription(
-        key=ATTR_BUS_NAME,
+        key="bus_name",
         name="Number",
         value_fn=lambda x: x.bus_name,
     ),
     HCBSensorEntityDescription(
-        key=ATTR_SPEED,
+        key="speed",
         name="Speed",
         device_class=SensorDeviceClass.SPEED,
         native_unit_of_measurement=UnitOfSpeed.MILES_PER_HOUR,
         value_fn=lambda x: x.speed,
     ),
     HCBSensorEntityDescription(
-        key=ATTR_ADDRESS,
+        key="address",
         name="Address",
         value_fn=lambda x: x.address,
     ),
     HCBSensorEntityDescription(
-        key=ATTR_HEADING,
+        key="heading",
         name="Heading",
         value_fn=lambda x: x.heading,
     ),
     HCBSensorEntityDescription(
-        key=ATTR_LOG_TIME,
+        key="log_time",
         name="Log time",
         device_class=SensorDeviceClass.TIMESTAMP,
         value_fn=lambda x: x.log_time,
     ),
     HCBSensorEntityDescription(
-        key=ATTR_AM_ARRIVAL_TIME,
-        name="AM arrival time",
-        value_fn=lambda x: x.am_arrival_time,
+        key="am_school_arrival_time",
+        name="AM school arrival time",
+        value_fn=lambda x: x.am_school_arrival_time,
     ),
     HCBSensorEntityDescription(
-        key=ATTR_PM_ARRIVAL_TIME,
-        name="PM arrival time",
-        value_fn=lambda x: x.pm_arrival_time,
+        key="am_stop_arrival_time",
+        name="AM stop arrival time",
+        value_fn=lambda x: x.am_stop_arrival_time,
+    ),
+    HCBSensorEntityDescription(
+        key="mid_school_arrival_time",
+        name="mid school arrival time",
+        value_fn=lambda x: x.mid_school_arrival_time,
+    ),
+    HCBSensorEntityDescription(
+        key="mid_stop_arrival_time",
+        name="mid stop arrival time",
+        value_fn=lambda x: x.mid_stop_arrival_time,
+    ),
+    HCBSensorEntityDescription(
+        key="pm_school_arrival_time",
+        name="PM school arrival time",
+        value_fn=lambda x: x.pm_school_arrival_time,
+    ),
+    HCBSensorEntityDescription(
+        key="pm_stop_arrival_time",
+        name="PM stop arrival time",
+        value_fn=lambda x: x.pm_stop_arrival_time,
     ),
 )
 
@@ -86,6 +97,9 @@ async def async_setup_entry(
         HCBSensor(entry.runtime_data.coordinator, entity_description, student)
         for entity_description in ENTITY_DESCRIPTIONS
         for student in entry.runtime_data.coordinator.data.values()
+        if student.has_mid_stops
+        or entity_description.key
+        not in ("mid_school_arrival_time", "mid_stop_arrival_time")
     )
 
 
