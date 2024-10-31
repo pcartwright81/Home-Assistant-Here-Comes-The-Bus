@@ -49,7 +49,7 @@ class HCBConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             )
         if user_input is not None:
             try:
-                _ = await self._test_credentials(user_input)
+                _ = await self.test_credentials(user_input)
             except InvalidAuth:
                 _errors["base"] = "invalid_auth"
             except Exception:  # noqa: BLE001
@@ -67,7 +67,7 @@ class HCBConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             errors=_errors,
         )
 
-    async def _test_credentials(self, user_input: dict) -> bool:
+    async def test_credentials(self, user_input: dict) -> bool:
         """Validate credentials."""
         client = HcbSoapClient()
         return await client.test_connection(

@@ -25,7 +25,7 @@ class HCBBinarySensorEntityDescription(
     """A class that describes binary sensor entities."""
 
     icon_on: str | None = None
-    value_fn: Callable[[StudentData], bool | None] | None = None
+    value_fn: Callable[[StudentData], bool | None]
 
 
 def _message_code_to_bool(message_code: int | None) -> bool | None:
@@ -53,6 +53,8 @@ ENTITY_DESCRIPTIONS: tuple[HCBBinarySensorEntityDescription, ...] = (
     HCBBinarySensorEntityDescription(
         key="message_code",
         name="In Service",
+        icon="mdi:flag-off",
+        icon_on="mdi:flag",
         value_fn=lambda x: _message_code_to_bool(x.message_code),
     ),
 )
@@ -89,8 +91,7 @@ class HCBBinarySensor(HCBEntity, BinarySensorEntity):
     @property
     def is_on(self) -> bool | None:
         """Return true if the binary sensor is on."""
-        if self.entity_description.value_fn is not None:
-            self._is_on = self.entity_description.value_fn(self.student)
+        self._is_on = self.entity_description.value_fn(self.student)
         return self._is_on
 
     @property
@@ -98,12 +99,11 @@ class HCBBinarySensor(HCBEntity, BinarySensorEntity):
         """Return the icon to use in the frontend."""
         if self._is_on:
             return self.entity_description.icon_on
-        return super().icon
+        return self.entity_description.icon
 
     @callback
     def _handle_coordinator_update(self) -> None:
         """Handle updated data from the coordinator."""
-        if len(self.coordinator.data) == 0:
-            return
-        self.student = self.coordinator.data[self.student.student_id]
-        self.async_write_ha_state()
+        if self.student.student_id in self.coordinator.data:
+            self.student = self.coordinator.data[self.student.student_id]
+            self.async_write_ha_state()

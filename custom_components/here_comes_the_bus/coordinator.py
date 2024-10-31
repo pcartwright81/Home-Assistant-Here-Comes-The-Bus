@@ -3,7 +3,6 @@
 from calendar import SATURDAY
 from datetime import datetime, time, timedelta
 
-from hcb_soap_client.hcb_soap_client import HcbSoapClient
 from hcb_soap_client.stop_response import StudentStop, VehicleLocation
 from homeassistant.const import CONF_PASSWORD, CONF_USERNAME
 from homeassistant.core import HomeAssistant
@@ -37,9 +36,9 @@ class HCBDataCoordinator(DataUpdateCoordinator):
             # being dispatched to listeners
             always_update=True,  # This has to be true.  But why?
         )
+        self._client = config_entry.runtime_data.client
         self._school_id: str = ""
         self._parent_id: str = ""
-        self._client: HcbSoapClient = HcbSoapClient()
         self.config_entry = config_entry
         self.data: dict[str, StudentData]
 
@@ -82,9 +81,8 @@ class HCBDataCoordinator(DataUpdateCoordinator):
                         if not student_data.has_mid_stops:
                             continue
                     self._update_stops(student_data, stop_response.student_stops)
-        except Exception as exc:
-            msg = "API is currently returning no data."
-            raise UserWarning(msg) from exc
+        except Exception:  # noqa: TRY203
+            raise
         LOGGER.debug("Initialization Complete")
 
     async def _async_update_data(self) -> dict[str, StudentData]:
@@ -122,7 +120,7 @@ class HCBDataCoordinator(DataUpdateCoordinator):
         return student_data.pm_start_time <= time_now <= student_data.pm_end_time
 
     def _update_vehicle_location(
-        self, student_data: StudentData, vehicle_location: VehicleLocation
+        self, student_data: StudentData, vehicle_location: VehicleLocation | None
     ) -> None:
         """Update student data with the provided vehicle location information."""
         if vehicle_location:
@@ -156,6 +154,9 @@ class HCBDataCoordinator(DataUpdateCoordinator):
         self, student_data: StudentData, stops: list[StudentStop]
     ) -> None:
         """Update student data with information from the provided stops."""
+        if not stops or len(stops) == 0:
+            msg = "No stops."
+            raise ValueError(msg)
         if any(stop.time_of_day_id != stops[0].time_of_day_id for stop in stops):
             msg = "Time of day must match for this function to work"
             raise ValueError(msg)
@@ -185,9 +186,7 @@ class HCBDataCoordinator(DataUpdateCoordinator):
             return HCBDataCoordinator.AM_ID
         if self._is_mid(check_time):
             return HCBDataCoordinator.MID_ID
-        if self._is_pm(check_time):
-            return HCBDataCoordinator.PM_ID
-        return HCBDataCoordinator.PM_ID  # same as above.
+        return HCBDataCoordinator.PM_ID
 
     def _get_start_time(self, stops: list[StudentStop]) -> time:
         return min(stop.tier_start_time for stop in stops)

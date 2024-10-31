@@ -120,14 +120,11 @@ class HCBSensor(HCBEntity, SensorEntity):
     @property
     def native_value(self) -> Any:
         """Return the state of the sensor."""
-        if self.entity_description.value_fn is None:
-            return None
         return self.entity_description.value_fn(self.student)
 
     @callback
     def _handle_coordinator_update(self) -> None:
         """Handle updated data from the coordinator."""
-        if len(self.coordinator.data) == 0:
-            return
-        self.student = self.coordinator.data[self.student.student_id]
-        self.async_write_ha_state()
+        if self.student.student_id in self.coordinator.data:
+            self.student = self.coordinator.data[self.student.student_id]
+            self.async_write_ha_state()
