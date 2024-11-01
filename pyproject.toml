@@ -16,3 +16,22 @@ exclude_also = [
     "raise NotImplementedError",
     "if TYPE_CHECKING:"
 ]
+
+[tool.poetry]
+package-mode = false
+
+[tool.poetry.dependencies]
+python = ">=3.12,<3.14"
+homeassistant = ">=2024.10.3"
+hcb-soap-client = ">=0.0.8"
+xmltodict = ">=0.14.2"
+
+[tool.poetry.group.dev.dependencies]
+debugpy = ">=1.8.7"
+pip = ">=24.3.1"
+ruff = ">=0.7.1"
+poetry = ">=1.8.4"
+
+[tool.poetry.group.test.dependencies]
+pytest = ">=8.3.3"
+pytest-homeassistant-custom-component = ">=0.13.175"
