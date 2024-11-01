@@ -4,7 +4,7 @@ from logging import Logger, getLogger
 
 LOGGER: Logger = getLogger(__package__)
 
-__version__ = "0.0.1"
+__version__ = "0.0.9"
 PROJECT_URL = "https://github.com/pcartwright81/Home-Assistant-Here-Comes-The-Bus/"
 ISSUE_URL = f"{PROJECT_URL}issues"
 
