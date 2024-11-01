@@ -1,7 +1,12 @@
 {
-    "python.testing.pytestArgs": [
-        "tests"
-    ],
-    "python.testing.unittestEnabled": false,
-    "python.testing.pytestEnabled": true
+  "python.testing.cwd": ".",
+  "python.poetryPath": ".venv/bin/poetry",
+  "python.testing.pytestEnabled": true,
+  "python.testing.pytestPath": ".venv/bin/pytest",
+  "python.analysis.typeCheckingMode": "basic",
+  "python.testing.pytestArgs": [
+    "${workspaceFolder}",
+    "--rootdir=${workspaceFolder}"
+  ],
+  "python.testing.unittestEnabled": false,
 }
