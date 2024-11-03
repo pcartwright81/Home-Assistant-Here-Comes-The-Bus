@@ -135,21 +135,27 @@ async def test_async_update_data(hass: HomeAssistant) -> None:
     # Mock current time to be within AM range
     with patch(
         "homeassistant.util.dt.now",
-        return_value=dt_util.now().replace(hour=7, minute=30),
+        return_value=dt_util.now().replace(
+            month=10, day=31, year=2024, hour=7, minute=30
+        ),
     ):
         await coordinator._async_update_data()
 
     # Mock current time to be within MID range
     with patch(
         "homeassistant.util.dt.now",
-        return_value=dt_util.now().replace(hour=11, minute=30),
+        return_value=dt_util.now().replace(
+            month=10, day=31, year=2024, hour=11, minute=30
+        ),
     ):
         await coordinator._async_update_data()
 
     # Mock current time to be within PM range
     with patch(
         "homeassistant.util.dt.now",
-        return_value=dt_util.now().replace(hour=15, minute=30),
+        return_value=dt_util.now().replace(
+            month=10, day=31, year=2024, hour=15, minute=30
+        ),
     ):
         await coordinator._async_update_data()
     assert coordinator.data["student1"].log_time is not None
@@ -413,14 +419,17 @@ def test_student_is_moving_weekend(hass: HomeAssistant) -> None:
     config_entry.data = {CONF_UPDATE_INTERVAL: 30}
     config_entry.runtime_data = MagicMock(client=MagicMock())
     coordinator = HCBDataCoordinator(hass, config_entry)
-    student_data = StudentData(first_name="Alice", student_id="student1")
-    student_data.am_start_time = time(7, 0)
-    student_data.am_end_time = time(8, 0)
-    student_data.has_mid_stops = True
-    student_data.mid_start_time = time(11, 0)
-    student_data.mid_end_time = time(12, 0)
-    student_data.pm_start_time = time(15, 0)
-    student_data.pm_end_time = time(16, 0)
+    student_data = StudentData(
+        first_name="Alice",
+        student_id="student1",
+        am_start_time=time(7, 0),
+        am_end_time=time(8, 0),
+        has_mid_stops=True,
+        mid_start_time=time(11, 0),
+        mid_end_time=time(12, 0),
+        pm_start_time=time(15, 0),
+        pm_end_time=time(16, 0),
+    )
 
     # Calculate the number of days to shift to get the desired weekday (6 for Saturday)
     days_to_shift = (6 - dt_util.now().weekday()) % 7
@@ -436,13 +445,18 @@ def test_student_is_moving_am(hass: HomeAssistant) -> None:
     config_entry.data = {CONF_UPDATE_INTERVAL: 30}
     config_entry.runtime_data = MagicMock(client=MagicMock())
     coordinator = HCBDataCoordinator(hass, config_entry)
-    student_data = StudentData(first_name="Alice", student_id="student1")
-    student_data.am_start_time = time(7, 0)
-    student_data.am_end_time = time(8, 0)
+    student_data = StudentData(
+        first_name="Alice",
+        student_id="student1",
+        am_start_time=time(7, 0),
+        am_end_time=time(8, 0),
+    )
 
     with patch(
         "homeassistant.util.dt.now",
-        return_value=dt_util.now().replace(hour=7, minute=30),
+        return_value=dt_util.now().replace(
+            month=10, day=31, year=2024, hour=7, minute=30
+        ),
     ):
         assert coordinator._student_is_moving(student_data)
 
@@ -453,14 +467,19 @@ def test_student_is_moving_mid(hass: HomeAssistant) -> None:
     config_entry.data = {CONF_UPDATE_INTERVAL: 30}
     config_entry.runtime_data = MagicMock(client=MagicMock())
     coordinator = HCBDataCoordinator(hass, config_entry)
-    student_data = StudentData(first_name="Alice", student_id="student1")
-    student_data.has_mid_stops = True
-    student_data.mid_start_time = time(11, 0)
-    student_data.mid_end_time = time(12, 0)
+    student_data = StudentData(
+        first_name="Alice",
+        student_id="student1",
+        has_mid_stops=True,
+        mid_start_time=time(11, 0),
+        mid_end_time=time(12, 0),
+    )
 
     with patch(
         "homeassistant.util.dt.now",
-        return_value=dt_util.now().replace(hour=11, minute=30),
+        return_value=dt_util.now().replace(
+            month=10, day=31, year=2024, hour=11, minute=30
+        ),
     ):
         assert coordinator._student_is_moving(student_data)
 
@@ -471,14 +490,19 @@ def test_student_is_moving_mid_no_mid_stops(hass: HomeAssistant) -> None:
     config_entry.data = {CONF_UPDATE_INTERVAL: 30}
     config_entry.runtime_data = MagicMock(client=MagicMock())
     coordinator = HCBDataCoordinator(hass, config_entry)
-    student_data = StudentData(first_name="Alice", student_id="student1")
-    student_data.has_mid_stops = False
-    student_data.mid_start_time = time(11, 0)
-    student_data.mid_end_time = time(12, 0)
+    student_data = StudentData(
+        first_name="Alice",
+        student_id="student1",
+        has_mid_stops=False,
+        mid_start_time=time(11, 0),
+        mid_end_time=time(12, 0),
+    )
 
     with patch(
         "homeassistant.util.dt.now",
-        return_value=dt_util.now().replace(hour=11, minute=30),
+        return_value=dt_util.now().replace(
+            month=10, day=31, year=2024, hour=11, minute=30
+        ),
     ):
         assert not coordinator._student_is_moving(student_data)
 
@@ -489,13 +513,18 @@ def test_student_is_moving_pm(hass: HomeAssistant) -> None:
     config_entry.data = {CONF_UPDATE_INTERVAL: 30}
     config_entry.runtime_data = MagicMock(client=MagicMock())
     coordinator = HCBDataCoordinator(hass, config_entry)
-    student_data = StudentData(first_name="Alice", student_id="student1")
-    student_data.pm_start_time = time(15, 0)
-    student_data.pm_end_time = time(16, 0)
+    student_data = StudentData(
+        first_name="Alice",
+        student_id="student1",
+        pm_start_time=time(15, 0),
+        pm_end_time=time(16, 0),
+    )
 
     with patch(
         "homeassistant.util.dt.now",
-        return_value=dt_util.now().replace(hour=15, minute=30),
+        return_value=dt_util.now().replace(
+            month=10, day=31, year=2024, hour=15, minute=30
+        ),
     ):
         assert coordinator._student_is_moving(student_data)
 
@@ -506,14 +535,17 @@ def test_student_is_not_moving_outside_time_ranges(hass: HomeAssistant) -> None:
     config_entry.data = {CONF_UPDATE_INTERVAL: 30}
     config_entry.runtime_data = MagicMock(client=MagicMock())
     coordinator = HCBDataCoordinator(hass, config_entry)
-    student_data = StudentData(first_name="Alice", student_id="student1")
-    student_data.am_start_time = time(7, 0)
-    student_data.am_end_time = time(8, 0)
-    student_data.has_mid_stops = True
-    student_data.mid_start_time = time(11, 0)
-    student_data.mid_end_time = time(12, 0)
-    student_data.pm_start_time = time(15, 0)
-    student_data.pm_end_time = time(16, 0)
+    student_data = StudentData(
+        first_name="Alice",
+        student_id="student1",
+        am_start_time=time(7, 0),
+        am_end_time=time(8, 0),
+        has_mid_stops=True,
+        mid_start_time=time(11, 0),
+        mid_end_time=time(12, 0),
+        pm_start_time=time(15, 0),
+        pm_end_time=time(16, 0),
+    )
 
     with patch(
         "homeassistant.util.dt.now",
@@ -818,7 +850,9 @@ async def test_async_update_data_student_moving(hass: HomeAssistant) -> None:
     # Mock current time to be within AM range
     with patch(
         "homeassistant.util.dt.now",
-        return_value=dt_util.now().replace(hour=7, minute=30),
+        return_value=dt_util.now().replace(
+            month=10, day=31, year=2024, hour=7, minute=30
+        ),
     ):
         data = await coordinator._async_update_data()
 
