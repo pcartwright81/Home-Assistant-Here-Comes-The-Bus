@@ -1,6 +1,6 @@
 """Tests for config flow."""
 
-from unittest.mock import patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from homeassistant import config_entries, data_entry_flow
@@ -116,33 +116,28 @@ async def test_async_step_user_unsupported_version(hass: HomeAssistant) -> None:
         }
 
 
-async def test_test_credentials_success() -> None:
-    """Test successful credential validation."""
+async def test_credentials() -> None:
+    """Test the test_credentials method."""
+    handler = HCBConfigFlowHandler()
+    user_input = {
+        "school_code": "test_school",
+        "username": "test_user",
+        "password": "test_password",
+    }
+
     with patch(
-        "hcb_soap_client.hcb_soap_client.HcbSoapClient.test_connection",
-        return_value=True,
-    ) as mock_test_connection:
-        handler = HCBConfigFlowHandler()
-        result = await handler.test_credentials(MOCK_USER_INPUT)
+        "custom_components.here_comes_the_bus.config_flow.HcbSoapClient"
+    ) as mock_client:
+        mock_client.return_value.get_school_id = AsyncMock(return_value="school_id")
+        mock_client.return_value.get_parent_info = AsyncMock(
+            return_value=MagicMock(account_id="account_id")
+        )
+
+        result = await handler.test_credentials(user_input)
         assert result is True
-        mock_test_connection.assert_called_once_with(
-            school_code=MOCK_USER_INPUT[CONF_SCHOOL_CODE],
-            user_name=MOCK_USER_INPUT[CONF_USERNAME],
-            password=MOCK_USER_INPUT[CONF_PASSWORD],
+
+        mock_client.return_value.get_parent_info = AsyncMock(
+            return_value=MagicMock(account_id="")
         )
-
-
-async def test_test_credentials_fail() -> None:
-    """Test failed credential validation."""
-    with patch(
-        "hcb_soap_client.hcb_soap_client.HcbSoapClient.test_connection",
-        return_value=False,
-    ) as mock_test_connection:
-        handler = HCBConfigFlowHandler()
-        result = await handler.test_credentials(MOCK_USER_INPUT)
+        result = await handler.test_credentials(user_input)
         assert result is False
-        mock_test_connection.assert_called_once_with(
-            school_code=MOCK_USER_INPUT[CONF_SCHOOL_CODE],
-            user_name=MOCK_USER_INPUT[CONF_USERNAME],
-            password=MOCK_USER_INPUT[CONF_PASSWORD],
-        )

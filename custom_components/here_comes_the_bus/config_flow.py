@@ -70,8 +70,10 @@ class HCBConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
     async def test_credentials(self, user_input: dict) -> bool:
         """Validate credentials."""
         client = HcbSoapClient()
-        return await client.test_connection(
-            school_code=user_input[CONF_SCHOOL_CODE],
-            user_name=user_input[CONF_USERNAME],
+        school_id = await client.get_school_id(user_input[CONF_SCHOOL_CODE])
+        account_info = await client.get_parent_info(
+            school_id=school_id,
+            username=user_input[CONF_USERNAME],
             password=user_input[CONF_PASSWORD],
         )
+        return account_info.account_id != ""
