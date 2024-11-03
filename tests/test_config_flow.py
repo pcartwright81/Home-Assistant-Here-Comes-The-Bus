@@ -116,7 +116,7 @@ async def test_async_step_user_unsupported_version(hass: HomeAssistant) -> None:
         }
 
 
-async def test_credentials():
+async def test_credentials() -> None:
     """Test the test_credentials method."""
     handler = HCBConfigFlowHandler()
     user_input = {
