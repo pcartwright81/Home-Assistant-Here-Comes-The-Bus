@@ -36,7 +36,6 @@ class HCBDataCoordinator(DataUpdateCoordinator):
             # being dispatched to listeners
             always_update=True,  # This has to be true.  But why?
         )
-        self._client = config_entry.runtime_data.client
         self._school_id: str = ""
         self._parent_id: str = ""
         self.config_entry = config_entry
@@ -45,11 +44,11 @@ class HCBDataCoordinator(DataUpdateCoordinator):
     async def async_config_entry_first_refresh(self) -> None:
         """Handle the first refresh."""
         if self._school_id == "":
-            self._school_id = await self._client.get_school_id(
+            self._school_id = await self.config_entry.runtime_data.client.get_school_id(
                 self.config_entry.data[CONF_SCHOOL_CODE]
             )
         if self._parent_id == "":
-            user_info = await self._client.get_parent_info(
+            user_info = await self.config_entry.runtime_data.client.get_parent_info(
                 self._school_id,
                 self.config_entry.data[CONF_USERNAME],
                 self.config_entry.data[CONF_PASSWORD],
@@ -66,11 +65,13 @@ class HCBDataCoordinator(DataUpdateCoordinator):
             for student_data in self.data.values():
                 # next get the stops for each time.
                 for time_of_day in user_info.times:
-                    stop_response = await self._client.get_stop_info(
-                        self._school_id,
-                        self._parent_id,
-                        student_data.student_id,
-                        time_of_day.id,
+                    stop_response = (
+                        await self.config_entry.runtime_data.client.get_stop_info(
+                            self._school_id,
+                            self._parent_id,
+                            student_data.student_id,
+                            time_of_day.id,
+                        )
                     )
                     if time_of_day.id == self.AM_ID:
                         self._update_vehicle_location(
@@ -91,7 +92,7 @@ class HCBDataCoordinator(DataUpdateCoordinator):
             if not self._student_is_moving(student_data):
                 continue
             # Fetch stop information from the HCB service
-            stops = await self._client.get_stop_info(
+            stops = await self.config_entry.runtime_data.client.get_stop_info(
                 self._school_id,
                 self._parent_id,
                 student_data.student_id,
