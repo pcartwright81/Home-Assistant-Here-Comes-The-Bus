@@ -66,8 +66,8 @@ async def test_async_config_entry_first_refresh(hass: HomeAssistant) -> None:
     coordinator = HCBDataCoordinator(hass, config_entry)
 
     # Mock the client methods (access through config_entry)
-    coordinator._client.get_school_id = AsyncMock(return_value="school_id")
-    coordinator._client.get_parent_info = AsyncMock(
+    config_entry.runtime_data.client.get_school_id = AsyncMock(return_value="school_id")
+    config_entry.runtime_data.client.get_parent_info = AsyncMock(
         return_value=MagicMock(
             account_id="parent_id",
             students=[
@@ -81,7 +81,7 @@ async def test_async_config_entry_first_refresh(hass: HomeAssistant) -> None:
             ],
         )
     )
-    coordinator._client.get_stop_info = AsyncMock(
+    config_entry.runtime_data.client.get_stop_info = AsyncMock(
         return_value=MagicMock(
             vehicle_location=MagicMock(),
             student_stops=STUDENT_STOPS,
@@ -125,7 +125,7 @@ async def test_async_update_data(hass: HomeAssistant) -> None:
     coordinator.data["student1"].pm_start_time = time(15, 0)
     coordinator.data["student1"].pm_end_time = time(16, 0)
     # Mock the client method (access through config_entry)
-    coordinator._client.get_stop_info = AsyncMock(
+    config_entry.runtime_data.client.get_stop_info = AsyncMock(
         return_value=MagicMock(
             vehicle_location=MagicMock(),
             student_stops=STUDENT_STOPS,
@@ -568,8 +568,8 @@ async def test_async_config_entry_first_refresh_initializes_school_and_parent_id
     coordinator = HCBDataCoordinator(hass, config_entry)
 
     # Mock the client methods (access through config_entry)
-    coordinator._client.get_school_id = AsyncMock(return_value="school_id")
-    coordinator._client.get_parent_info = AsyncMock(
+    config_entry.runtime_data.client.get_school_id = AsyncMock(return_value="school_id")
+    config_entry.runtime_data.client.get_parent_info = AsyncMock(
         return_value=MagicMock(
             account_id="parent_id",
             students=[
@@ -583,7 +583,7 @@ async def test_async_config_entry_first_refresh_initializes_school_and_parent_id
             ],
         )
     )
-    coordinator._client.get_stop_info = AsyncMock(
+    config_entry.runtime_data.client.get_stop_info = AsyncMock(
         return_value=MagicMock(
             vehicle_location=MagicMock(),
             student_stops=STUDENT_STOPS,
@@ -612,8 +612,8 @@ async def test_async_config_entry_first_refresh_updates_vehicle_location(
     coordinator = HCBDataCoordinator(hass, config_entry)
 
     # Mock the client methods (access through config_entry)
-    coordinator._client.get_school_id = AsyncMock(return_value="school_id")
-    coordinator._client.get_parent_info = AsyncMock(
+    config_entry.runtime_data.client.get_school_id = AsyncMock(return_value="school_id")
+    config_entry.runtime_data.client.get_parent_info = AsyncMock(
         return_value=MagicMock(
             account_id="parent_id",
             students=[
@@ -639,7 +639,7 @@ async def test_async_config_entry_first_refresh_updates_vehicle_location(
         message_code=1,
         speed=SPEED,
     )
-    coordinator._client.get_stop_info = AsyncMock(
+    config_entry.runtime_data.client.get_stop_info = AsyncMock(
         return_value=MagicMock(
             vehicle_location=vehicle_location,
             student_stops=STUDENT_STOPS,
@@ -676,8 +676,8 @@ async def test_async_config_entry_first_refresh_handles_no_mid_stops(
     coordinator = HCBDataCoordinator(hass, config_entry)
 
     # Mock the client methods (access through config_entry)
-    coordinator._client.get_school_id = AsyncMock(return_value="school_id")
-    coordinator._client.get_parent_info = AsyncMock(
+    config_entry.runtime_data.client.get_school_id = AsyncMock(return_value="school_id")
+    config_entry.runtime_data.client.get_parent_info = AsyncMock(
         return_value=MagicMock(
             account_id="parent_id",
             students=[
@@ -691,7 +691,7 @@ async def test_async_config_entry_first_refresh_handles_no_mid_stops(
             ],
         )
     )
-    coordinator._client.get_stop_info = AsyncMock(
+    config_entry.runtime_data.client.get_stop_info = AsyncMock(
         side_effect=[
             MagicMock(
                 vehicle_location=MagicMock(),
@@ -740,8 +740,8 @@ async def test_async_config_entry_first_refresh_handles_no_stops_returned(
     coordinator = HCBDataCoordinator(hass, config_entry)
 
     # Mock the client methods (access through config_entry)
-    coordinator._client.get_school_id = AsyncMock(return_value="school_id")
-    coordinator._client.get_parent_info = AsyncMock(
+    config_entry.runtime_data.client.get_school_id = AsyncMock(return_value="school_id")
+    config_entry.runtime_data.client.get_parent_info = AsyncMock(
         return_value=MagicMock(
             account_id="parent_id",
             students=[
@@ -755,7 +755,7 @@ async def test_async_config_entry_first_refresh_handles_no_stops_returned(
             ],
         )
     )
-    coordinator._client.get_stop_info = AsyncMock(
+    config_entry.runtime_data.client.get_stop_info = AsyncMock(
         side_effect=[
             MagicMock(
                 vehicle_location=None,
@@ -797,7 +797,7 @@ async def test_async_update_data_student_not_moving(hass: HomeAssistant) -> None
     coordinator.data["student1"].pm_end_time = time(16, 0)
 
     # Mock the client method (access through config_entry)
-    coordinator._client.get_stop_info = AsyncMock()
+    config_entry.runtime_data.client.get_stop_info = AsyncMock()
 
     # Mock current time to be outside all ranges
     with patch(
@@ -806,7 +806,7 @@ async def test_async_update_data_student_not_moving(hass: HomeAssistant) -> None
     ):
         data = await coordinator._async_update_data()
 
-    assert coordinator._client.get_stop_info.call_count == 0
+    assert config_entry.runtime_data.client.get_stop_info.call_count == 0
     assert data == coordinator.data
 
 
@@ -840,7 +840,7 @@ async def test_async_update_data_student_moving(hass: HomeAssistant) -> None:
     coordinator.data["student1"].pm_end_time = time(16, 0)
 
     # Mock the client method (access through config_entry)
-    coordinator._client.get_stop_info = AsyncMock(
+    config_entry.runtime_data.client.get_stop_info = AsyncMock(
         return_value=MagicMock(
             vehicle_location=MagicMock(),
             student_stops=STUDENT_STOPS,
@@ -856,6 +856,6 @@ async def test_async_update_data_student_moving(hass: HomeAssistant) -> None:
     ):
         data = await coordinator._async_update_data()
 
-    assert coordinator._client.get_stop_info.call_count == 1
+    assert config_entry.runtime_data.client.get_stop_info.call_count == 1
     assert data == coordinator.data
     assert coordinator.data["student1"].log_time is not None
