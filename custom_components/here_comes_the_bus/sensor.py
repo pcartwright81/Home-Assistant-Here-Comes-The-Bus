@@ -88,7 +88,7 @@ ENTITY_DESCRIPTIONS: tuple[HCBSensorEntityDescription, ...] = (
 
 
 async def async_setup_entry(
-    hass: HomeAssistant,  # noqa: ARG001 Unused function argument: `hass`
+    _: HomeAssistant,
     entry: HCBConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
