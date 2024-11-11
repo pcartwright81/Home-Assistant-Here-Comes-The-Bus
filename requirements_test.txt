@@ -1,4 +1,4 @@
 -r requirements.txt
 pytest
-pytest-homeassistant-custom-component==0.13.175
+pytest-homeassistant-custom-component==0.13.182
 pytest-freezer
