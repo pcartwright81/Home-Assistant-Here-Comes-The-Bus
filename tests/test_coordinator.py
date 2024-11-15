@@ -299,7 +299,12 @@ def test_update_stops_am() -> None:
         ),
     ]
     coordinator._update_stops(student_data, stops)  # type: ignore This is magic mock
-    assert student_data.am_start_time == time(7, 0)
+    assert (
+        student_data.am_start_time
+        == (
+            datetime.combine(dt_util.now().date(), time(7, 15)) - timedelta(minutes=30)
+        ).time()
+    )
     assert (
         student_data.am_end_time
         == (
@@ -333,7 +338,12 @@ def test_update_stops_mid() -> None:
         ),
     ]
     coordinator._update_stops(student_data, stops)  # type: ignore This is magic mock
-    assert student_data.mid_start_time == time(12, 0)
+    assert (
+        student_data.mid_start_time
+        == (
+            datetime.combine(dt_util.now().date(), time(12, 15)) - timedelta(minutes=30)
+        ).time()
+    )
     assert (
         student_data.mid_end_time
         == (
@@ -367,7 +377,12 @@ def test_update_stops_pm() -> None:
         ),
     ]
     coordinator._update_stops(student_data, stops)  # type: ignore This is magic mock
-    assert student_data.pm_start_time == time(15, 0)
+    assert (
+        student_data.pm_start_time
+        == (
+            datetime.combine(dt_util.now().date(), time(15, 15)) - timedelta(minutes=30)
+        ).time()
+    )
     assert (
         student_data.pm_end_time
         == (

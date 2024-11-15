@@ -190,7 +190,16 @@ class HCBDataCoordinator(DataUpdateCoordinator):
         return HCBDataCoordinator.PM_ID
 
     def _get_start_time(self, stops: list[StudentStop]) -> time:
-        return min(stop.tier_start_time for stop in stops)
+        earliest = min(stop.start_time for stop in stops)
+        # Convert time to datetime to perform the addition
+        dummy_date = dt_util.now().date()  # Use any date, it doesn't matter for this
+        datetime_with_time = datetime.combine(dummy_date, earliest)
+
+        # Add 30 minutes
+        new_datetime = datetime_with_time - timedelta(minutes=30)
+
+        # Extract the time component from the new datetime
+        return new_datetime.time()
 
     def _get_end_time(self, stops: list[StudentStop]) -> time:
         latest = max(stop.start_time for stop in stops)
