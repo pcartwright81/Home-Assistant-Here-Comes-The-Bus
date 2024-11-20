@@ -10,7 +10,7 @@
   "iot_class": "cloud_polling",
   "issue_tracker": "https://github.com/pcartwright81/Home-Assistant-Here-Comes-The-Bus/issues",
   "requirements": [
-    "hcb_soap_client==0.0.9"
+    "hcb_soap_client==0.0.10"
   ],
   "version": "0.0.11"
 }
