@@ -60,7 +60,7 @@ class HCBDataCoordinator(DataUpdateCoordinator):
                 student_data = StudentData(student.first_name, student.student_id)
                 self.data[student.student_id] = student_data
         try:
-            #this fails during epecific hours
+            # this fails during epecific hours
             for student_data in self.data.values():
                 # next get the stops for each time.
                 for time_of_day in user_info.times:

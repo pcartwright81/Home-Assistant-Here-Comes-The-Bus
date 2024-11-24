@@ -787,7 +787,6 @@ async def test_async_config_entry_first_refresh_handles_no_stops_returned(
     await coordinator.async_config_entry_first_refresh()
 
 
-
 async def test_async_update_data_student_not_moving(hass: HomeAssistant) -> None:
     """Test the _async_update_data method when student is not moving."""
     config_entry = MagicMock()
