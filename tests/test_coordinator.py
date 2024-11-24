@@ -256,8 +256,14 @@ def test_update_stops_no_stops() -> None:
         hass=MagicMock(), config_entry=MagicMock(data={"update_interval": 20})
     )
     student_data = StudentData(first_name="Alice", student_id="student1")
-    with pytest.raises(ValueError, match="No stops."):
+    with pytest.raises(ValueError, match="No stops returned."):
         coordinator._update_stops(student_data, [])
+    assert student_data.am_start_time == time(6, 00)
+    assert student_data.am_end_time == time(9, 00)
+    assert student_data.mid_start_time == time(11, 00)
+    assert student_data.mid_end_time == time(13, 00)
+    assert student_data.pm_start_time == time(14, 00)
+    assert student_data.pm_end_time == time(16, 00)
 
 
 def test_update_stops_mismatched_time_of_day() -> None:
@@ -778,8 +784,7 @@ async def test_async_config_entry_first_refresh_handles_no_stops_returned(
             ),
         ]
     )
-    with pytest.raises(ValueError, match="No stops."):
-        await coordinator.async_config_entry_first_refresh()
+    await coordinator.async_config_entry_first_refresh()
 
 
 async def test_async_update_data_student_not_moving(hass: HomeAssistant) -> None:
