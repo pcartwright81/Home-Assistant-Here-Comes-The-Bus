@@ -53,12 +53,12 @@ class StudentData:
         mid_stop_arrival_time: time | None = None,
         pm_school_arrival_time: time | None = None,
         pm_stop_arrival_time: time | None = None,
-        am_start_time: time = time(0, 0),  # Default value
-        am_end_time: time = time(0, 0),  # Default value
-        mid_start_time: time = time(0, 0),  # Default value
-        mid_end_time: time = time(0, 0),  # Default value
-        pm_start_time: time = time(0, 0),  # Default value
-        pm_end_time: time = time(0, 0),  # Default value
+        am_start_time: time = time(6, 0),  # Default value
+        am_end_time: time = time(9, 0),  # Default value
+        mid_start_time: time = time(11, 0),  # Default value
+        mid_end_time: time = time(13, 0),  # Default value
+        pm_start_time: time = time(14, 0),  # Default value
+        pm_end_time: time = time(16, 0),  # Default value
         has_mid_stops: bool = False,  # Default value  # noqa: FBT001, FBT002
     ) -> None:
         """Initialize the data update entity."""

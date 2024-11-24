@@ -59,9 +59,8 @@ class HCBDataCoordinator(DataUpdateCoordinator):
             for student in user_info.students:
                 student_data = StudentData(student.first_name, student.student_id)
                 self.data[student.student_id] = student_data
-        # NOTE: Setting up between 11PM - 5:40AM fill fail due to data not existing.
-        # NOTE: Will go into retry setup until 5:40.
         try:
+            #this fails during epecific hours
             for student_data in self.data.values():
                 # next get the stops for each time.
                 for time_of_day in user_info.times:
@@ -82,8 +81,8 @@ class HCBDataCoordinator(DataUpdateCoordinator):
                         if not student_data.has_mid_stops:
                             continue
                     self._update_stops(student_data, stop_response.student_stops)
-        except Exception:  # noqa: TRY203
-            raise
+        except ValueError as e:
+            LOGGER.error(e)
         LOGGER.debug("Initialization Complete")
 
     async def _async_update_data(self) -> dict[str, StudentData]:
@@ -156,7 +155,7 @@ class HCBDataCoordinator(DataUpdateCoordinator):
     ) -> None:
         """Update student data with information from the provided stops."""
         if not stops or len(stops) == 0:
-            msg = "No stops."
+            msg = "No stops returned."
             raise ValueError(msg)
         if any(stop.time_of_day_id != stops[0].time_of_day_id for stop in stops):
             msg = "Time of day must match for this function to work"
