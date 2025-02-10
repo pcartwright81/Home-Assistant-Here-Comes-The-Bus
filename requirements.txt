@@ -1,5 +1,5 @@
 colorlog==6.9.0
-pip==25.0
+pip==25.0.1
 homeassistant==2024.10.4
 xmltodict==0.14.2
 hcb-soap-client==0.0.10
