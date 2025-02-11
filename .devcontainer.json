@@ -37,6 +37,10 @@
             }
         }
     },
-    "remoteUser": "vscode",
+    "runArgs": [
+		"--userns=keep-id"
+	],
+	"remoteUser": "vscode",
+	"containerUser": "vscode",
     "features": {}
 }
