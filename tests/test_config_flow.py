@@ -112,7 +112,7 @@ async def test_async_step_user_unsupported_version(hass: HomeAssistant) -> None:
         assert result["reason"] == "unsupported_version"
         assert result["description_placeholders"] == {
             "req_ver": __min_ha_version__,
-            "run_ver": "2025.1.4",  # this will update every time.
+            "run_ver": "2025.2.4",  # this will update every time.
         }
 
 
