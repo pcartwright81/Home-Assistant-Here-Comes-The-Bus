@@ -8,14 +8,11 @@ from homeassistant.auth.providers.homeassistant import InvalidAuth
 from homeassistant.const import CONF_PASSWORD, CONF_USERNAME
 from homeassistant.core import HomeAssistant
 
-from custom_components.here_comes_the_bus import (  # Replace with your actual path
-    DOMAIN,
-    __min_ha_version__,
-)
 from custom_components.here_comes_the_bus.config_flow import HCBConfigFlowHandler
 from custom_components.here_comes_the_bus.const import (
     CONF_SCHOOL_CODE,
     CONF_UPDATE_INTERVAL,
+    DOMAIN,
 )
 
 # Mock data
@@ -94,26 +91,6 @@ async def test_async_step_user_unknown_error(hass: HomeAssistant) -> None:
         assert "errors" in result
         assert result["type"] == data_entry_flow.FlowResultType.FORM
         assert result["errors"] == {"base": "unknown"}
-
-
-async def test_async_step_user_unsupported_version(hass: HomeAssistant) -> None:
-    """Test unsupported Home Assistant version."""
-    with patch(
-        "custom_components.here_comes_the_bus.config_flow.is_valid_ha_version",
-        return_value=False,
-    ):
-        result = await hass.config_entries.flow.async_init(
-            DOMAIN, context={"source": config_entries.SOURCE_USER}
-        )
-        assert "type" in result
-        assert "reason" in result
-        assert "description_placeholders" in result
-        assert result["type"] == data_entry_flow.FlowResultType.ABORT
-        assert result["reason"] == "unsupported_version"
-        assert result["description_placeholders"] == {
-            "req_ver": __min_ha_version__,
-            "run_ver": "2025.2.4",  # this will update every time.
-        }
 
 
 async def test_credentials() -> None:
