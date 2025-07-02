@@ -40,13 +40,13 @@ class StudentData:
         latitude: float | None = None,
         longitude: float | None = None,
         log_time: datetime | None = None,
-        ignition: bool | None = None,
-        latent: bool | None = None,
+        ignition: bool | None = None,  # noqa: FBT001
+        latent: bool | None = None,  # noqa: FBT001
         heading: str | None = None,
         speed: int | None = None,
         address: str | None = None,
         message_code: int | None = None,
-        display_on_map: bool | None = None,
+        display_on_map: bool | None = None,  # noqa: FBT001
         am_school_arrival_time: time | None = None,
         am_stop_arrival_time: time | None = None,
         mid_school_arrival_time: time | None = None,
