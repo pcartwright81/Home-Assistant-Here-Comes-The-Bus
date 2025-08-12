@@ -41,6 +41,10 @@
 		"--userns=keep-id"
 	],
 	"remoteUser": "vscode",
+    "features": {
+        "ghcr.io/devcontainers-extra/features/apt-packages:1": {
+            "packages": "ffmpeg,libturbojpeg0,libpcap-dev"
+        },
 	"containerUser": "vscode",
     "features": {}
 }

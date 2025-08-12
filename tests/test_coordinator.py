@@ -161,10 +161,10 @@ async def test_async_update_data(hass: HomeAssistant) -> None:
     assert coordinator.data["student1"].log_time is not None
 
 
-def test_update_vehicle_location_with_data() -> None:
+def test_update_vehicle_location_with_data(hass: HomeAssistant) -> None:
     """Test _update_vehicle_location with valid vehicle_location data."""
     coordinator = HCBDataCoordinator(
-        hass=MagicMock(), config_entry=MagicMock(data={"update_interval": 20})
+        hass=hass, config_entry=MagicMock(data={"update_interval": 20})
     )
     student_data = StudentData(first_name="Alice", student_id="student1")
     dt_now = dt_util.now()
@@ -195,10 +195,10 @@ def test_update_vehicle_location_with_data() -> None:
     assert student_data.speed == SPEED
 
 
-def test_update_vehicle_location_no_data() -> None:
+def test_update_vehicle_location_no_data(hass: HomeAssistant) -> None:
     """Test _update_vehicle_location with empty vehicle_location data."""
     coordinator = HCBDataCoordinator(
-        hass=MagicMock(), config_entry=MagicMock(data={"update_interval": 20})
+        hass=hass, config_entry=MagicMock(data={"update_interval": 20})
     )
     student_data = StudentData(first_name="Alice", student_id="student1")
 
@@ -216,10 +216,10 @@ def test_update_vehicle_location_no_data() -> None:
     assert student_data.speed is None
 
 
-def test_fix_time() -> None:
+def test_fix_time(hass: HomeAssistant) -> None:
     """Test the _fix_time method."""
     coordinator = HCBDataCoordinator(
-        hass=MagicMock(), config_entry=MagicMock(data={"update_interval": 20})
+        hass=hass, config_entry=MagicMock(data={"update_interval": 20})
     )
 
     # Test with None input
@@ -234,10 +234,10 @@ def test_fix_time() -> None:
     assert coordinator._fix_time(input_time) == expected_time
 
 
-def test_get_time_of_day_id() -> None:
+def test_get_time_of_day_id(hass: HomeAssistant) -> None:
     """Test the _get_time_of_day_id method."""
     coordinator = HCBDataCoordinator(
-        hass=MagicMock(), config_entry=MagicMock(data={"update_interval": 20})
+        hass=hass, config_entry=MagicMock(data={"update_interval": 20})
     )
 
     # Test AM time
@@ -250,10 +250,10 @@ def test_get_time_of_day_id() -> None:
     assert coordinator._get_time_of_day_id(time(15, 0)) == coordinator.PM_ID
 
 
-def test_update_stops_no_stops() -> None:
+def test_update_stops_no_stops(hass: HomeAssistant) -> None:
     """Test _update_stops with no stops."""
     coordinator = HCBDataCoordinator(
-        hass=MagicMock(), config_entry=MagicMock(data={"update_interval": 20})
+        hass=hass, config_entry=MagicMock(data={"update_interval": 20})
     )
     student_data = StudentData(first_name="Alice", student_id="student1")
     with pytest.raises(ValueError, match="No stops returned."):
@@ -266,10 +266,10 @@ def test_update_stops_no_stops() -> None:
     assert student_data.pm_end_time == time(16, 00)
 
 
-def test_update_stops_mismatched_time_of_day() -> None:
+def test_update_stops_mismatched_time_of_day(hass: HomeAssistant) -> None:
     """Test _update_stops with mismatched time_of_day_id."""
     coordinator = HCBDataCoordinator(
-        hass=MagicMock(), config_entry=MagicMock(data={"update_interval": 20})
+        hass=hass, config_entry=MagicMock(data={"update_interval": 20})
     )
     student_data = StudentData(first_name="Alice", student_id="student1")
     stops = [
@@ -282,10 +282,10 @@ def test_update_stops_mismatched_time_of_day() -> None:
         coordinator._update_stops(student_data, stops)  # type: ignore This is magic mock
 
 
-def test_update_stops_am() -> None:
+def test_update_stops_am(hass: HomeAssistant) -> None:
     """Test _update_stops with AM stops."""
     coordinator = HCBDataCoordinator(
-        hass=MagicMock(), config_entry=MagicMock(data={"update_interval": 20})
+        hass=hass, config_entry=MagicMock(data={"update_interval": 20})
     )
     student_data = StudentData(first_name="Alice", student_id="student1")
     stops = [
@@ -321,10 +321,10 @@ def test_update_stops_am() -> None:
     assert student_data.am_stop_arrival_time == time(7, 45)
 
 
-def test_update_stops_mid() -> None:
+def test_update_stops_mid(hass: HomeAssistant) -> None:
     """Test _update_stops with MID stops."""
     coordinator = HCBDataCoordinator(
-        hass=MagicMock(), config_entry=MagicMock(data={"update_interval": 20})
+        hass=hass, config_entry=MagicMock(data={"update_interval": 20})
     )
     student_data = StudentData(first_name="Alice", student_id="student1")
     stops = [
@@ -360,10 +360,10 @@ def test_update_stops_mid() -> None:
     assert student_data.mid_stop_arrival_time == time(12, 45)
 
 
-def test_update_stops_pm() -> None:
+def test_update_stops_pm(hass: HomeAssistant) -> None:
     """Test _update_stops with PM stops."""
     coordinator = HCBDataCoordinator(
-        hass=MagicMock(), config_entry=MagicMock(data={"update_interval": 20})
+        hass=hass, config_entry=MagicMock(data={"update_interval": 20})
     )
     student_data = StudentData(first_name="Alice", student_id="student1")
     stops = [
@@ -399,20 +399,20 @@ def test_update_stops_pm() -> None:
     assert student_data.pm_stop_arrival_time == time(15, 45)
 
 
-def test_is_am() -> None:
+def test_is_am(hass: HomeAssistant) -> None:
     """Test the _is_am method."""
     coordinator = HCBDataCoordinator(
-        hass=MagicMock(), config_entry=MagicMock(data={"update_interval": 20})
+        hass=hass, config_entry=MagicMock(data={"update_interval": 20})
     )
     assert coordinator._is_am(time(7, 0)) is True
     assert coordinator._is_am(time(10, 0)) is False
     assert coordinator._is_am(time(12, 0)) is False
 
 
-def test_is_mid() -> None:
+def test_is_mid(hass: HomeAssistant) -> None:
     """Test the _is_mid method."""
     coordinator = HCBDataCoordinator(
-        hass=MagicMock(), config_entry=MagicMock(data={"update_interval": 20})
+        hass=hass, config_entry=MagicMock(data={"update_interval": 20})
     )
     assert coordinator._is_mid(time(7, 0)) is False
     assert coordinator._is_mid(time(10, 0)) is True
@@ -421,10 +421,10 @@ def test_is_mid() -> None:
     assert coordinator._is_mid(time(15, 0)) is False
 
 
-def test_is_pm() -> None:
+def test_is_pm(hass: HomeAssistant) -> None:
     """Test the _is_pm method."""
     coordinator = HCBDataCoordinator(
-        hass=MagicMock(), config_entry=MagicMock(data={"update_interval": 20})
+        hass=hass, config_entry=MagicMock(data={"update_interval": 20})
     )
     assert coordinator._is_pm(time(7, 0)) is False
     assert coordinator._is_pm(time(10, 0)) is False
