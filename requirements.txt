@@ -3,5 +3,5 @@ pip==25.2
 homeassistant==2025.9.1
 xmltodict==0.15.1
 hcb-soap-client==0.0.10
-ruff==0.12.12
+ruff==0.13.0
 debugpy==1.8.16
