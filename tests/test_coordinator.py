@@ -256,7 +256,7 @@ def test_update_stops_no_stops(hass: HomeAssistant) -> None:
         hass=hass, config_entry=MagicMock(data={"update_interval": 20})
     )
     student_data = StudentData(first_name="Alice", student_id="student1")
-    with pytest.raises(ValueError, match="No stops returned."):
+    with pytest.raises(ValueError, match=r"No stops returned."):
         coordinator._update_stops(student_data, [])
     assert student_data.am_start_time == time(6, 00)
     assert student_data.am_end_time == time(9, 00)
