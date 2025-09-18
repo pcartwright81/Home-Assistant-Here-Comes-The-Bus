@@ -1,7 +1,7 @@
 colorlog==6.9.0
 pip==25.2
 homeassistant==2025.9.3
-xmltodict==1.0.1
+xmltodict==1.0.2
 hcb-soap-client==0.0.10
 ruff==0.13.0
 debugpy==1.8.17
