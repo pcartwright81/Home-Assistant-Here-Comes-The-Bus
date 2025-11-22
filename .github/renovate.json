@@ -1,13 +1,13 @@
 {
-  "schedule": [
-    "on Sunday",
-    "at 23:00"
-  ],
   "packageRules": [
     {
       "matchUpdateTypes": ["minor", "patch", "pin", "digest"],
-      "automerge": true,
-      "groupName": "Weekly Automated Updates"
+      "groupName": "Weekly Automated Updates",
+      "schedule": [
+        "on Sunday",
+        "at 23:00"
+      ],
+      "automerge": true
     }
   ]
 }
