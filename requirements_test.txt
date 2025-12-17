@@ -1,3 +1,4 @@
 -r requirements.txt
 pytest-homeassistant-custom-component
 pytest-freezer
+pycares<5.0.0
