@@ -14,6 +14,9 @@ dependencies = [
     "debugpy==1.8.19",
 ]
 
+[tool.setuptools.packages.find]
+include = ["custom_components*"]
+
 [project.optional-dependencies]
 test = [
     "pytest-homeassistant-custom-component",
