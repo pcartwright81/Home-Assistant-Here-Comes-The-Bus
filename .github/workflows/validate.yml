@@ -11,7 +11,7 @@ on:
     branches:
       - "main"
 env:
-  DEFAULT_PYTHON: "3.13"
+  DEFAULT_PYTHON: "3.12"
 
 jobs:
   hassfest: # https://developers.home-assistant.io/blog/2020/04/16/hassfest
