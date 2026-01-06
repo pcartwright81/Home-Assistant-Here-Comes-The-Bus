@@ -1,8 +1,8 @@
 """Support for Here comes the bus binary sensors."""
 
 from collections.abc import Callable
+from dataclasses import dataclass
 
-from attr import dataclass
 from homeassistant.components.binary_sensor import (
     BinarySensorEntity,
     BinarySensorEntityDescription,
@@ -19,9 +19,7 @@ DEFAULT_ICON = "def_icon"
 
 
 @dataclass(frozen=True, kw_only=True)
-class HCBBinarySensorEntityDescription(
-    BinarySensorEntityDescription, frozen_or_thawed=True
-):
+class HCBBinarySensorEntityDescription(BinarySensorEntityDescription):
     """A class that describes binary sensor entities."""
 
     icon_on: str | None = None
