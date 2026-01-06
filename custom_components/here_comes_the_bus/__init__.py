@@ -12,8 +12,7 @@ from homeassistant.const import (
 from homeassistant.core import HomeAssistant
 from homeassistant.loader import async_get_loaded_integration
 
-from custom_components.here_comes_the_bus.coordinator import HCBDataCoordinator
-
+from .coordinator import HCBDataCoordinator
 from .data import HCBConfigEntry, HCBData
 
 PLATFORMS = [Platform.BINARY_SENSOR, Platform.DEVICE_TRACKER, Platform.SENSOR]

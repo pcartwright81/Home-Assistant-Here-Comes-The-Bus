@@ -2,6 +2,7 @@
 
 from calendar import SATURDAY
 from datetime import datetime, time, timedelta
+from enum import StrEnum
 
 from hcb_soap_client.stop_response import StudentStop, VehicleLocation
 from homeassistant.const import CONF_PASSWORD, CONF_USERNAME
@@ -13,12 +14,16 @@ from .const import CONF_SCHOOL_CODE, CONF_UPDATE_INTERVAL, DOMAIN, LOGGER
 from .data import HCBConfigEntry, StudentData
 
 
+class TimeOfDay(StrEnum):
+    """Time of day identifiers from HCB service."""
+
+    AM = "55632A13-35C5-4169-B872-F5ABDC25DF6A"
+    MID = "27AADCA0-6D7E-4247-A80F-7847C448EEED"
+    PM = "6E7A050E-0295-4200-8EDC-3611BB5DE1C1"
+
+
 class HCBDataCoordinator(DataUpdateCoordinator):
     """Define a data coordinator."""
-
-    AM_ID = "55632A13-35C5-4169-B872-F5ABDC25DF6A"
-    MID_ID = "27AADCA0-6D7E-4247-A80F-7847C448EEED"
-    PM_ID = "6E7A050E-0295-4200-8EDC-3611BB5DE1C1"
 
     def __init__(self, hass: HomeAssistant, config_entry: HCBConfigEntry) -> None:
         """Initialize the coordinator."""
@@ -72,11 +77,11 @@ class HCBDataCoordinator(DataUpdateCoordinator):
                             time_of_day.id,
                         )
                     )
-                    if time_of_day.id == self.AM_ID:
+                    if time_of_day.id == TimeOfDay.AM:
                         self._update_vehicle_location(
                             student_data, stop_response.vehicle_location
                         )
-                    elif time_of_day.id == self.MID_ID:
+                    elif time_of_day.id == TimeOfDay.MID:
                         student_data.has_mid_stops = any(stop_response.student_stops)
                         if not student_data.has_mid_stops:
                             continue
@@ -162,19 +167,19 @@ class HCBDataCoordinator(DataUpdateCoordinator):
             raise ValueError(msg)
         school = "School"
         stop = "Stop"
-        if stops[0].time_of_day_id == HCBDataCoordinator.AM_ID:
+        if stops[0].time_of_day_id == TimeOfDay.AM:
             student_data.am_start_time = self._get_start_time(stops)
             student_data.am_end_time = self._get_end_time(stops)
             student_data.am_school_arrival_time = self._get_stop_time(stops, school)
             student_data.am_stop_arrival_time = self._get_stop_time(stops, stop)
             return
-        if stops[0].time_of_day_id == HCBDataCoordinator.MID_ID:
+        if stops[0].time_of_day_id == TimeOfDay.MID:
             student_data.mid_start_time = self._get_start_time(stops)
             student_data.mid_end_time = self._get_end_time(stops)
             student_data.mid_school_arrival_time = self._get_stop_time(stops, school)
             student_data.mid_stop_arrival_time = self._get_stop_time(stops, stop)
             return
-        if stops[0].time_of_day_id == HCBDataCoordinator.PM_ID:
+        if stops[0].time_of_day_id == TimeOfDay.PM:
             student_data.pm_start_time = self._get_start_time(stops)
             student_data.pm_end_time = self._get_end_time(stops)
             student_data.pm_school_arrival_time = self._get_stop_time(stops, school)
@@ -183,34 +188,24 @@ class HCBDataCoordinator(DataUpdateCoordinator):
     def _get_time_of_day_id(self, check_time: time) -> str:
         """Get the time of day ID based on the given time."""
         if self._is_am(check_time):
-            return HCBDataCoordinator.AM_ID
+            return TimeOfDay.AM
         if self._is_mid(check_time):
-            return HCBDataCoordinator.MID_ID
-        return HCBDataCoordinator.PM_ID
+            return TimeOfDay.MID
+        return TimeOfDay.PM
+
+    def _adjust_time(self, base_time: time, delta_minutes: int) -> time:
+        """Adjust a time by adding or subtracting minutes."""
+        dummy_date = dt_util.now().date()
+        dt_combined = datetime.combine(dummy_date, base_time)
+        return (dt_combined + timedelta(minutes=delta_minutes)).time()
 
     def _get_start_time(self, stops: list[StudentStop]) -> time:
         earliest = min(stop.start_time for stop in stops)
-        # Convert time to datetime to perform the addition
-        dummy_date = dt_util.now().date()  # Use any date, it doesn't matter for this
-        datetime_with_time = datetime.combine(dummy_date, earliest)
-
-        # Add 30 minutes
-        new_datetime = datetime_with_time - timedelta(minutes=30)
-
-        # Extract the time component from the new datetime
-        return new_datetime.time()
+        return self._adjust_time(earliest, -30)
 
     def _get_end_time(self, stops: list[StudentStop]) -> time:
         latest = max(stop.start_time for stop in stops)
-        # Convert time to datetime to perform the addition
-        dummy_date = dt_util.now().date()  # Use any date, it doesn't matter for this
-        datetime_with_time = datetime.combine(dummy_date, latest)
-
-        # Add 30 minutes
-        new_datetime = datetime_with_time + timedelta(minutes=30)
-
-        # Extract the time component from the new datetime
-        return new_datetime.time()
+        return self._adjust_time(latest, 30)
 
     def _get_stop_time(self, stops: list[StudentStop], stop_type: str) -> time | None:
         stop_stops = [stop for stop in stops if stop.stop_type == stop_type]

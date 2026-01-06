@@ -1,10 +1,10 @@
 """Define sensors."""
 
 from collections.abc import Callable
+from dataclasses import dataclass
 from datetime import datetime, time
 from typing import Any
 
-from attr import dataclass
 from homeassistant.components.sensor import SensorEntity, SensorEntityDescription
 from homeassistant.components.sensor.const import SensorDeviceClass
 from homeassistant.const import (
@@ -19,7 +19,7 @@ from .entity import HCBEntity
 
 
 @dataclass(frozen=True, kw_only=True)
-class HCBSensorEntityDescription(SensorEntityDescription, frozen_or_thawed=True):
+class HCBSensorEntityDescription(SensorEntityDescription):
     """A class that describes sensor entities."""
 
     value_fn: Callable[[StudentData], float | str | datetime | time | None]
