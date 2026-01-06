@@ -28,7 +28,7 @@ jobs:
           sudo apt-get install -y libxml2-dev libxslt-dev
 
       - name: "Install requirements"
-        run: python3 -m pip install .
+        run: python3 -m pip install .[dev]
 
       - name: "Lint"
         run: python3 -m ruff check .
