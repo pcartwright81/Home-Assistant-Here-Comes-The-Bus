@@ -13,13 +13,16 @@ from custom_components.here_comes_the_bus.const import (
     CONF_UPDATE_INTERVAL,
     DOMAIN,
 )
-from custom_components.here_comes_the_bus.coordinator import HCBDataCoordinator
+from custom_components.here_comes_the_bus.coordinator import (
+    HCBDataCoordinator,
+    TimeOfDay,
+)
 from custom_components.here_comes_the_bus.data import StudentData
 
 STUDENT_STOPS = [
     MagicMock(
         stop_type="School",
-        time_of_day_id=HCBDataCoordinator.AM_ID,
+        time_of_day_id=TimeOfDay.AM,
         tier_start_time=time(6, 0),
         start_time=time(7, 15),
         am_school_arrival_time=time(7, 0),
@@ -27,7 +30,7 @@ STUDENT_STOPS = [
     ),
     MagicMock(
         stop_type="Stop",
-        time_of_day_id=HCBDataCoordinator.AM_ID,
+        time_of_day_id=TimeOfDay.AM,
         tier_start_time=time(6, 0),
         start_time=time(7, 30),
         am_school_arrival_time=time(7, 0),
@@ -75,9 +78,9 @@ async def test_async_config_entry_first_refresh(hass: HomeAssistant) -> None:
                 MagicMock(first_name="Bob", student_id="student2"),
             ],
             times=[
-                MagicMock(id=coordinator.AM_ID),
-                MagicMock(id=coordinator.MID_ID),
-                MagicMock(id=coordinator.PM_ID),
+                MagicMock(id=TimeOfDay.AM),
+                MagicMock(id=TimeOfDay.MID),
+                MagicMock(id=TimeOfDay.PM),
             ],
         )
     )
@@ -241,13 +244,13 @@ def test_get_time_of_day_id(hass: HomeAssistant) -> None:
     )
 
     # Test AM time
-    assert coordinator._get_time_of_day_id(time(7, 0)) == coordinator.AM_ID
+    assert coordinator._get_time_of_day_id(time(7, 0)) == TimeOfDay.AM
 
     # Test MID time
-    assert coordinator._get_time_of_day_id(time(12, 0)) == coordinator.MID_ID
+    assert coordinator._get_time_of_day_id(time(12, 0)) == TimeOfDay.MID
 
     # Test PM time
-    assert coordinator._get_time_of_day_id(time(15, 0)) == coordinator.PM_ID
+    assert coordinator._get_time_of_day_id(time(15, 0)) == TimeOfDay.PM
 
 
 def test_update_stops_no_stops(hass: HomeAssistant) -> None:
@@ -273,8 +276,8 @@ def test_update_stops_mismatched_time_of_day(hass: HomeAssistant) -> None:
     )
     student_data = StudentData(first_name="Alice", student_id="student1")
     stops = [
-        MagicMock(time_of_day_id=coordinator.AM_ID),
-        MagicMock(time_of_day_id=coordinator.MID_ID),
+        MagicMock(time_of_day_id=TimeOfDay.AM),
+        MagicMock(time_of_day_id=TimeOfDay.MID),
     ]
     with pytest.raises(
         ValueError, match="Time of day must match for this function to work"
@@ -290,14 +293,14 @@ def test_update_stops_am(hass: HomeAssistant) -> None:
     student_data = StudentData(first_name="Alice", student_id="student1")
     stops = [
         MagicMock(
-            time_of_day_id=coordinator.AM_ID,
+            time_of_day_id=TimeOfDay.AM,
             tier_start_time=time(7, 0),
             start_time=time(7, 15),
             stop_type="School",
             arrival_time=time(7, 30),
         ),
         MagicMock(
-            time_of_day_id=coordinator.AM_ID,
+            time_of_day_id=TimeOfDay.AM,
             tier_start_time=time(7, 5),
             start_time=time(7, 20),
             stop_type="Stop",
@@ -329,14 +332,14 @@ def test_update_stops_mid(hass: HomeAssistant) -> None:
     student_data = StudentData(first_name="Alice", student_id="student1")
     stops = [
         MagicMock(
-            time_of_day_id=coordinator.MID_ID,
+            time_of_day_id=TimeOfDay.MID,
             tier_start_time=time(12, 0),
             start_time=time(12, 15),
             stop_type="School",
             arrival_time=time(12, 30),
         ),
         MagicMock(
-            time_of_day_id=coordinator.MID_ID,
+            time_of_day_id=TimeOfDay.MID,
             tier_start_time=time(12, 5),
             start_time=time(12, 20),
             stop_type="Stop",
@@ -368,14 +371,14 @@ def test_update_stops_pm(hass: HomeAssistant) -> None:
     student_data = StudentData(first_name="Alice", student_id="student1")
     stops = [
         MagicMock(
-            time_of_day_id=coordinator.PM_ID,
+            time_of_day_id=TimeOfDay.PM,
             tier_start_time=time(15, 0),
             start_time=time(15, 15),
             stop_type="School",
             arrival_time=time(15, 30),
         ),
         MagicMock(
-            time_of_day_id=coordinator.PM_ID,
+            time_of_day_id=TimeOfDay.PM,
             tier_start_time=time(15, 5),
             start_time=time(15, 20),
             stop_type="Stop",
@@ -598,9 +601,9 @@ async def test_async_config_entry_first_refresh_initializes_school_and_parent_id
                 MagicMock(first_name="Bob", student_id="student2"),
             ],
             times=[
-                MagicMock(id=coordinator.AM_ID),
-                MagicMock(id=coordinator.MID_ID),
-                MagicMock(id=coordinator.PM_ID),
+                MagicMock(id=TimeOfDay.AM),
+                MagicMock(id=TimeOfDay.MID),
+                MagicMock(id=TimeOfDay.PM),
             ],
         )
     )
@@ -642,9 +645,9 @@ async def test_async_config_entry_first_refresh_updates_vehicle_location(
                 MagicMock(first_name="Bob", student_id="student2"),
             ],
             times=[
-                MagicMock(id=coordinator.AM_ID),
-                MagicMock(id=coordinator.MID_ID),
-                MagicMock(id=coordinator.PM_ID),
+                MagicMock(id=TimeOfDay.AM),
+                MagicMock(id=TimeOfDay.MID),
+                MagicMock(id=TimeOfDay.PM),
             ],
         )
     )
@@ -706,9 +709,9 @@ async def test_async_config_entry_first_refresh_handles_no_mid_stops(
                 MagicMock(first_name="Bob", student_id="student2"),
             ],
             times=[
-                MagicMock(id=coordinator.AM_ID),
-                MagicMock(id=coordinator.MID_ID),
-                MagicMock(id=coordinator.PM_ID),
+                MagicMock(id=TimeOfDay.AM),
+                MagicMock(id=TimeOfDay.MID),
+                MagicMock(id=TimeOfDay.PM),
             ],
         )
     )
@@ -770,9 +773,9 @@ async def test_async_config_entry_first_refresh_handles_no_stops_returned(
                 MagicMock(first_name="Bob", student_id="student2"),
             ],
             times=[
-                MagicMock(id=coordinator.AM_ID),
-                MagicMock(id=coordinator.MID_ID),
-                MagicMock(id=coordinator.PM_ID),
+                MagicMock(id=TimeOfDay.AM),
+                MagicMock(id=TimeOfDay.MID),
+                MagicMock(id=TimeOfDay.PM),
             ],
         )
     )
