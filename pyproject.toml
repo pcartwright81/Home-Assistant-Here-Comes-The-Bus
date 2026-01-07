@@ -2,12 +2,12 @@
 
 [project]
 name = "here-comes-the-bus"
-version = "0.0.0"
+version = "0.1.4"
 requires-python = ">=3.12"
 dependencies = [
     "pip==25.3",
-    "homeassistant==2025.12.4",
-    "hcb-soap-client==0.1.1",
+    "homeassistant==2026.1.0",
+    "hcb-soap-client==0.1.2",
 ]
 
 [tool.setuptools.packages.find]
