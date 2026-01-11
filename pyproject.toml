@@ -17,7 +17,7 @@ include = ["custom_components*"]
 test = [
     "pytest-homeassistant-custom-component==0.13.305",
     "pytest-freezer==0.4.9",
-    "pycares<5.0.0",
+    "pycares<5.0.2",
     "colorlog==6.10.1",
 ]
 dev = ["ruff==0.14.11", "debugpy==1.8.19"]
