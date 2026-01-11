@@ -20,7 +20,7 @@ test = [
     "pycares<5.0.0",
     "colorlog==6.10.1",
 ]
-dev = ["ruff==0.14.10", "debugpy==1.8.19"]
+dev = ["ruff==0.14.11", "debugpy==1.8.19"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
