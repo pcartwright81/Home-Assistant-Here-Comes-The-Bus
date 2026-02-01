@@ -15,12 +15,12 @@ include = ["custom_components*"]
 
 [project.optional-dependencies]
 test = [
-    "pytest-homeassistant-custom-component==0.13.308",
+    "pytest-homeassistant-custom-component==0.13.310",
     "pytest-freezer==0.4.9",
     "pycares<5.0.2",
     "colorlog==6.10.1",
 ]
-dev = ["ruff==0.14.14", "debugpy==1.8.19"]
+dev = ["ruff==0.14.14", "debugpy==1.8.20"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
