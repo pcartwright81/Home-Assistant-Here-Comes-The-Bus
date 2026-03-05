@@ -3,11 +3,11 @@
 [project]
 name = "here-comes-the-bus"
 version = "v1.0.1"
-requires-python = ">=3.12"
+requires-python = ">=3.14"
 dependencies = [
     "pip==26.0.1",
-    "homeassistant==2026.2.3",
-    "hcb-soap-client==0.1.2",
+    "homeassistant==2026.3.0",
+    "hcb-soap-client==0.1.4",
 ]
 
 [tool.setuptools.packages.find]
@@ -15,7 +15,7 @@ include = ["custom_components*"]
 
 [project.optional-dependencies]
 test = [
-    "pytest-homeassistant-custom-component==0.13.316",
+    "pytest-homeassistant-custom-component==0.13.317",
     "pytest-freezer==0.4.9",
     "pycares<5.0.2",
     "colorlog==6.10.1",
