@@ -6,8 +6,8 @@ version = "v1.0.1"
 requires-python = ">=3.12"
 dependencies = [
     "pip==26.0.1",
-    "homeassistant==2026.2.3",
-    "hcb-soap-client==0.1.2",
+    "homeassistant==2026.3.0",
+    "hcb-soap-client==0.1.3",
 ]
 
 [tool.setuptools.packages.find]
