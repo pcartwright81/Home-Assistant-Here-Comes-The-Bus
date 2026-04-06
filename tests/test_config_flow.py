@@ -44,10 +44,16 @@ async def test_async_step_user_success(hass: HomeAssistant) -> None:
             return_value=MagicMock(account_id="test_account_id")
         )
         mock_soap_client.return_value = mock_instance
-        
-        with patch(
-            "custom_components.here_comes_the_bus.config_flow.HCBConfigFlowHandler.test_credentials",
-            return_value=True,
+
+        with (
+            patch(
+                "custom_components.here_comes_the_bus.config_flow.HCBConfigFlowHandler.test_credentials",
+                return_value=True,
+            ),
+            patch(
+                "custom_components.here_comes_the_bus.async_setup_entry",
+                new=AsyncMock(return_value=True),
+            ),
         ):
             result = await hass.config_entries.flow.async_init(
                 DOMAIN, context={"source": config_entries.SOURCE_USER}

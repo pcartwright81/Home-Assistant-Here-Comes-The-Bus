@@ -48,6 +48,7 @@ class HCBDataCoordinator(DataUpdateCoordinator):
 
     async def async_config_entry_first_refresh(self) -> None:
         """Handle the first refresh."""
+        user_info = None
         if self._school_id == "":
             self._school_id = await self.config_entry.runtime_data.client.get_school_id(
                 self.config_entry.data[CONF_SCHOOL_CODE]
@@ -64,8 +65,19 @@ class HCBDataCoordinator(DataUpdateCoordinator):
             for student in user_info.students:
                 student_data = StudentData(student.first_name, student.student_id)
                 self.data[student.student_id] = student_data
+        else:
+            user_info = await self.config_entry.runtime_data.client.get_parent_info(
+                self._school_id,
+                self.config_entry.data[CONF_USERNAME],
+                self.config_entry.data[CONF_PASSWORD],
+            )
+            if not hasattr(self, "data") or self.data is None:
+                self.data = {}
+                for student in user_info.students:
+                    student_data = StudentData(student.first_name, student.student_id)
+                    self.data[student.student_id] = student_data
         try:
-            # this fails during epecific hours
+            # this fails during specific hours
             for student_data in self.data.values():
                 # next get the stops for each time.
                 for time_of_day in user_info.times:
@@ -184,6 +196,9 @@ class HCBDataCoordinator(DataUpdateCoordinator):
             student_data.pm_end_time = self._get_end_time(stops)
             student_data.pm_school_arrival_time = self._get_stop_time(stops, school)
             student_data.pm_stop_arrival_time = self._get_stop_time(stops, stop)
+            return
+        msg = "Invalid time of day ID. Cannot update stops."
+        raise ValueError(msg)
 
     def _get_time_of_day_id(self, check_time: time) -> str:
         """Get the time of day ID based on the given time."""
