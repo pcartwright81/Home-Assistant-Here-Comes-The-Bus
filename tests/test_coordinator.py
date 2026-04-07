@@ -19,6 +19,8 @@ from custom_components.here_comes_the_bus.coordinator import (
 )
 from custom_components.here_comes_the_bus.data import StudentData
 
+TIME_OF_DAY_COUNT = 3
+
 STUDENT_STOPS = [
     MagicMock(
         stop_type="School",
@@ -176,7 +178,9 @@ async def test_async_config_entry_first_refresh_handles_existing_parent_id(
     await coordinator.async_config_entry_first_refresh()
 
     assert config_entry.runtime_data.client.get_parent_info.call_count == 1
-    assert config_entry.runtime_data.client.get_stop_info.call_count == 3
+    assert (
+        config_entry.runtime_data.client.get_stop_info.call_count == TIME_OF_DAY_COUNT
+    )
 
 
 async def test_async_config_entry_first_refresh_initializes_data_when_parent_id_exists(
@@ -216,7 +220,9 @@ async def test_async_config_entry_first_refresh_initializes_data_when_parent_id_
 
     assert coordinator.data["student1"].first_name == "Alice"
     assert config_entry.runtime_data.client.get_parent_info.call_count == 1
-    assert config_entry.runtime_data.client.get_stop_info.call_count == 3
+    assert (
+        config_entry.runtime_data.client.get_stop_info.call_count == TIME_OF_DAY_COUNT
+    )
 
 
 async def test_async_update_data(hass: HomeAssistant) -> None:
@@ -546,7 +552,7 @@ def test_update_stops_unknown_time_of_day(hass: HomeAssistant) -> None:
     ]
 
     with pytest.raises(
-        ValueError, match="Invalid time of day ID. Cannot update stops."
+        ValueError, match=r"Invalid time of day ID\. Cannot update stops\."
     ):
         coordinator._update_stops(student_data, stops)  # type: ignore This is magic mock
 
