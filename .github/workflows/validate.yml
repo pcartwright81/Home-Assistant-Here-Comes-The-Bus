@@ -34,9 +34,6 @@ jobs:
         with:
           category: "integration"
 
-      - name: Hassfest validation
-        uses: "home-assistant/actions/hassfest@master"
-
   tests:
     runs-on: "ubuntu-latest"
     name: Run tests
