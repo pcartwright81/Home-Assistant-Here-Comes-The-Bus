@@ -19,6 +19,8 @@ from custom_components.here_comes_the_bus.coordinator import (
 )
 from custom_components.here_comes_the_bus.data import StudentData
 
+TIME_OF_DAY_COUNT = 3
+
 STUDENT_STOPS = [
     MagicMock(
         stop_type="School",
@@ -97,6 +99,130 @@ async def test_async_config_entry_first_refresh(hass: HomeAssistant) -> None:
     assert coordinator._parent_id == "parent_id"
     expected_student_count = 2
     assert len(coordinator.data) == expected_student_count
+
+
+async def test_async_config_entry_first_refresh_skips_school_id_when_already_set(
+    hass: HomeAssistant,
+) -> None:
+    """Test first refresh does not request school id when already set."""
+    config_entry = MagicMock()
+    config_entry.data = {
+        CONF_SCHOOL_CODE: "test_school",
+        CONF_USERNAME: "test_user",
+        CONF_PASSWORD: "test_password",
+    }
+    config_entry.runtime_data = MagicMock(client=MagicMock())
+    coordinator = HCBDataCoordinator(hass, config_entry)
+    coordinator._school_id = "existing_school_id"
+
+    config_entry.runtime_data.client.get_school_id = AsyncMock(
+        side_effect=AssertionError("get_school_id should not be called")
+    )
+    config_entry.runtime_data.client.get_parent_info = AsyncMock(
+        return_value=MagicMock(
+            account_id="parent_id",
+            students=[MagicMock(first_name="Alice", student_id="student1")],
+            times=[MagicMock(id=TimeOfDay.AM)],
+        )
+    )
+    config_entry.runtime_data.client.get_stop_info = AsyncMock(
+        return_value=MagicMock(
+            vehicle_location=MagicMock(),
+            student_stops=STUDENT_STOPS,
+        )
+    )
+
+    await coordinator.async_config_entry_first_refresh()
+
+    assert coordinator._school_id == "existing_school_id"
+    assert coordinator._parent_id == "parent_id"
+    assert config_entry.runtime_data.client.get_school_id.call_count == 0
+
+
+async def test_async_config_entry_first_refresh_handles_existing_parent_id(
+    hass: HomeAssistant,
+) -> None:
+    """Test first refresh handles when parent_id is already set."""
+    config_entry = MagicMock()
+    config_entry.data = {
+        CONF_SCHOOL_CODE: "test_school",
+        CONF_USERNAME: "test_user",
+        CONF_PASSWORD: "test_password",
+    }
+    config_entry.runtime_data = MagicMock(client=MagicMock())
+    coordinator = HCBDataCoordinator(hass, config_entry)
+    coordinator._school_id = "school_id"
+    coordinator._parent_id = "parent_id"
+    coordinator.data = {
+        "student1": StudentData(first_name="Alice", student_id="student1")
+    }
+
+    config_entry.runtime_data.client.get_parent_info = AsyncMock(
+        return_value=MagicMock(
+            account_id="parent_id",
+            students=[MagicMock(first_name="Alice", student_id="student1")],
+            times=[
+                MagicMock(id=TimeOfDay.AM),
+                MagicMock(id=TimeOfDay.MID),
+                MagicMock(id=TimeOfDay.PM),
+            ],
+        )
+    )
+    config_entry.runtime_data.client.get_stop_info = AsyncMock(
+        return_value=MagicMock(
+            vehicle_location=MagicMock(),
+            student_stops=STUDENT_STOPS,
+        )
+    )
+
+    await coordinator.async_config_entry_first_refresh()
+
+    assert config_entry.runtime_data.client.get_parent_info.call_count == 1
+    assert (
+        config_entry.runtime_data.client.get_stop_info.call_count == TIME_OF_DAY_COUNT
+    )
+
+
+async def test_async_config_entry_first_refresh_initializes_data_when_parent_id_exists(
+    hass: HomeAssistant,
+) -> None:
+    """Test first refresh initializes data when parent_id exists but data is missing."""
+    config_entry = MagicMock()
+    config_entry.data = {
+        CONF_SCHOOL_CODE: "test_school",
+        CONF_USERNAME: "test_user",
+        CONF_PASSWORD: "test_password",
+    }
+    config_entry.runtime_data = MagicMock(client=MagicMock())
+    coordinator = HCBDataCoordinator(hass, config_entry)
+    coordinator._school_id = "school_id"
+    coordinator._parent_id = "parent_id"
+
+    config_entry.runtime_data.client.get_parent_info = AsyncMock(
+        return_value=MagicMock(
+            account_id="parent_id",
+            students=[MagicMock(first_name="Alice", student_id="student1")],
+            times=[
+                MagicMock(id=TimeOfDay.AM),
+                MagicMock(id=TimeOfDay.MID),
+                MagicMock(id=TimeOfDay.PM),
+            ],
+        )
+    )
+    config_entry.runtime_data.client.get_stop_info = AsyncMock(
+        return_value=MagicMock(
+            vehicle_location=MagicMock(),
+            student_stops=STUDENT_STOPS,
+        )
+    )
+
+    await coordinator.async_config_entry_first_refresh()
+
+    assert coordinator.data["student1"].first_name == "Alice"
+    assert config_entry.runtime_data.client.get_parent_info.call_count == 1
+    assert (
+        config_entry.runtime_data.client.get_stop_info.call_count == TIME_OF_DAY_COUNT
+    )
 
 
 async def test_async_update_data(hass: HomeAssistant) -> None:
@@ -400,6 +526,44 @@ def test_update_stops_pm(hass: HomeAssistant) -> None:
     )
     assert student_data.pm_school_arrival_time == time(15, 30)
     assert student_data.pm_stop_arrival_time == time(15, 45)
+
+
+def test_update_stops_unknown_time_of_day(hass: HomeAssistant) -> None:
+    """Test _update_stops when time_of_day_id is not AM, MID, or PM."""
+    coordinator = HCBDataCoordinator(
+        hass=hass, config_entry=MagicMock(data={"update_interval": 20})
+    )
+    student_data = StudentData(first_name="Alice", student_id="student1")
+    stops = [
+        MagicMock(
+            time_of_day_id="UNKNOWN",
+            tier_start_time=time(15, 0),
+            start_time=time(15, 15),
+            stop_type="School",
+            arrival_time=time(15, 30),
+        ),
+        MagicMock(
+            time_of_day_id="UNKNOWN",
+            tier_start_time=time(15, 5),
+            start_time=time(15, 20),
+            stop_type="Stop",
+            arrival_time=time(15, 45),
+        ),
+    ]
+
+    with pytest.raises(
+        ValueError, match=r"Invalid time of day ID\. Cannot update stops\."
+    ):
+        coordinator._update_stops(student_data, stops)  # type: ignore This is magic mock
+
+    assert student_data.am_start_time == time(6, 0)
+    assert student_data.am_end_time == time(9, 0)
+    assert student_data.mid_start_time == time(11, 0)
+    assert student_data.mid_end_time == time(13, 0)
+    assert student_data.pm_start_time == time(14, 0)
+    assert student_data.pm_end_time == time(16, 0)
+    assert student_data.am_school_arrival_time is None
+    assert student_data.pm_school_arrival_time is None
 
 
 def test_is_am(hass: HomeAssistant) -> None:

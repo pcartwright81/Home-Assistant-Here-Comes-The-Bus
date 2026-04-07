@@ -35,26 +35,43 @@ def auto_enable_custom_integrations(enable_custom_integrations):  # noqa: ANN001
 async def test_async_step_user_success(hass: HomeAssistant) -> None:
     """Test successful user step."""
     with patch(
-        "custom_components.here_comes_the_bus.config_flow.HCBConfigFlowHandler.test_credentials",
-        return_value=True,
-    ):
-        result = await hass.config_entries.flow.async_init(
-            DOMAIN, context={"source": config_entries.SOURCE_USER}
+        "custom_components.here_comes_the_bus.config_flow.HcbSoapClient"
+    ) as mock_soap_client:
+        # Mock the client instance and its methods
+        mock_instance = AsyncMock()
+        mock_instance.get_school_id = AsyncMock(return_value="test_school_id")
+        mock_instance.get_parent_info = AsyncMock(
+            return_value=MagicMock(account_id="test_account_id")
         )
-        assert "type" in result
-        assert "step_id" in result
-        assert result["type"] == data_entry_flow.FlowResultType.FORM
-        assert result["step_id"] == "user"
+        mock_soap_client.return_value = mock_instance
 
-        result = await hass.config_entries.flow.async_configure(
-            result["flow_id"], user_input=MOCK_USER_INPUT
-        )
-        assert "type" in result
-        assert "title" in result
-        assert "data" in result
-        assert result["type"] == data_entry_flow.FlowResultType.CREATE_ENTRY
-        assert result["title"] == "Here Comes The Bus"
-        assert result["data"] == MOCK_USER_INPUT
+        with (
+            patch(
+                "custom_components.here_comes_the_bus.config_flow.HCBConfigFlowHandler.test_credentials",
+                return_value=True,
+            ),
+            patch(
+                "custom_components.here_comes_the_bus.async_setup_entry",
+                new=AsyncMock(return_value=True),
+            ),
+        ):
+            result = await hass.config_entries.flow.async_init(
+                DOMAIN, context={"source": config_entries.SOURCE_USER}
+            )
+            assert "type" in result
+            assert "step_id" in result
+            assert result["type"] == data_entry_flow.FlowResultType.FORM
+            assert result["step_id"] == "user"
+
+            result = await hass.config_entries.flow.async_configure(
+                result["flow_id"], user_input=MOCK_USER_INPUT
+            )
+            assert "type" in result
+            assert "title" in result
+            assert "data" in result
+            assert result["type"] == data_entry_flow.FlowResultType.CREATE_ENTRY
+            assert result["title"] == "Here Comes The Bus"
+            assert result["data"] == MOCK_USER_INPUT
 
 
 async def test_async_step_user_invalid_auth(hass: HomeAssistant) -> None:
