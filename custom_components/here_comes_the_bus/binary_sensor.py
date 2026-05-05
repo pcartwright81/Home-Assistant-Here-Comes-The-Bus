@@ -30,7 +30,7 @@ def _message_code_to_bool(message_code: int | None) -> bool | None:
     """Format the message code to a boolean."""
     if message_code is None:
         return None
-    return message_code == 1
+    return message_code in {1, 2}
 
 
 ENTITY_DESCRIPTIONS: tuple[HCBBinarySensorEntityDescription, ...] = (
