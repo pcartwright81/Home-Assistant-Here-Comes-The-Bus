@@ -5,7 +5,7 @@ name = "here-comes-the-bus"
 version = "v1.0.4"
 requires-python = ">=3.14"
 dependencies = [
-    "pip==26.1.1",
+    "pip==26.1.2",
     "homeassistant==2026.5.4",
     "hcb-soap-client==0.1.5",
 ]
@@ -15,12 +15,12 @@ include = ["custom_components*"]
 
 [project.optional-dependencies]
 test = [
-    "pytest-homeassistant-custom-component==0.13.333",
+    "pytest-homeassistant-custom-component==0.13.334",
     "pytest-freezer==0.4.9",
     "pycares<5.0.2",
     "colorlog==6.10.1",
 ]
-dev = ["ruff==0.15.14", "debugpy==1.8.20"]
+dev = ["ruff==0.15.15", "debugpy==1.8.20"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
