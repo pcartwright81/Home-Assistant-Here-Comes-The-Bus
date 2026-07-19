@@ -18,9 +18,9 @@ test = [
     "pytest-homeassistant-custom-component==0.13.346",
     "pytest-freezer==0.4.9",
     "pycares<5.0.2",
-    "colorlog==6.10.1",
+    "colorlog==6.11.0",
 ]
-dev = ["ruff==0.15.21", "debugpy==1.8.21"]
+dev = ["ruff==0.15.22", "debugpy==1.8.21"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
