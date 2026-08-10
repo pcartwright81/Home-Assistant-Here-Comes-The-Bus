@@ -46,6 +46,7 @@ ignore = [
     "COM812", # incompatible with formatter
     "ISC001", # incompatible with formatter
     "EXE002", # shebang-missing-executable-file
+    "CPY001", # missing copyright
 ]
 
 [tool.ruff.lint.flake8-pytest-style]
