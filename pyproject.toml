@@ -5,8 +5,8 @@ name = "here-comes-the-bus"
 version = "v1.0.4"
 requires-python = ">=3.14"
 dependencies = [
-    "pip==26.1.2",
-    "homeassistant==2026.7.2",
+    "pip==26.2.1",
+    "homeassistant==2026.8.1",
     "hcb-soap-client==0.1.5",
 ]
 
@@ -15,12 +15,12 @@ include = ["custom_components*"]
 
 [project.optional-dependencies]
 test = [
-    "pytest-homeassistant-custom-component==0.13.346",
+    "pytest-homeassistant-custom-component==0.13.355",
     "pytest-freezer==0.4.9",
     "pycares<5.0.2",
-    "colorlog==6.11.0",
+    "colorlog==6.12.0",
 ]
-dev = ["ruff==0.15.22", "debugpy==1.8.21"]
+dev = ["ruff==0.16.2", "debugpy==1.8.21"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
@@ -46,6 +46,7 @@ ignore = [
     "COM812", # incompatible with formatter
     "ISC001", # incompatible with formatter
     "EXE002", # shebang-missing-executable-file
+    "CPY001", # missing copyright
 ]
 
 [tool.ruff.lint.flake8-pytest-style]
