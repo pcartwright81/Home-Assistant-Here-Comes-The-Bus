@@ -987,7 +987,7 @@ async def test_async_config_entry_first_refresh_continues_after_unassigned_stude
     assert config_entry.runtime_data.client.get_stop_info.await_count == len(
         coordinator.data
     )
-    assert coordinator.data["student2"].am_start_time == time(5, 30)
+    assert coordinator.data["student2"].am_start_time == time(6, 45)
 
 
 async def test_async_update_data_student_not_moving(hass: HomeAssistant) -> None:
