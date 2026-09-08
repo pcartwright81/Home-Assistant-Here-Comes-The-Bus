@@ -172,8 +172,11 @@ class HCBDataCoordinator(DataUpdateCoordinator):
     ) -> None:
         """Update student data with information from the provided stops."""
         if not stops or len(stops) == 0:
-            msg = "No stops returned."
-            raise ValueError(msg)
+            LOGGER.debug(
+                "No stops assigned for student %s; skipping stop-time update",
+                student_data.first_name,
+            )
+            return
         if any(stop.time_of_day_id != stops[0].time_of_day_id for stop in stops):
             msg = "Time of day must match for this function to work"
             raise ValueError(msg)

@@ -385,8 +385,7 @@ def test_update_stops_no_stops(hass: HomeAssistant) -> None:
         hass=hass, config_entry=MagicMock(data={"update_interval": 20})
     )
     student_data = StudentData(first_name="Alice", student_id="student1")
-    with pytest.raises(ValueError, match=r"No stops returned."):
-        coordinator._update_stops(student_data, [])
+    coordinator._update_stops(student_data, [])
     assert student_data.am_start_time == time(6, 00)
     assert student_data.am_end_time == time(9, 00)
     assert student_data.mid_start_time == time(11, 00)
@@ -944,14 +943,51 @@ async def test_async_config_entry_first_refresh_handles_no_stops_returned(
         )
     )
     config_entry.runtime_data.client.get_stop_info = AsyncMock(
-        side_effect=[
-            MagicMock(
-                vehicle_location=None,
-                student_stops=[],
-            ),
-        ]
+        return_value=MagicMock(
+            vehicle_location=None,
+            student_stops=[],
+        )
     )
     await coordinator.async_config_entry_first_refresh()
+
+
+async def test_async_config_entry_first_refresh_continues_after_unassigned_student(
+    hass: HomeAssistant,
+) -> None:
+    """Test that one student without stops does not abort other students."""
+    config_entry = MagicMock()
+    config_entry.data = {
+        CONF_SCHOOL_CODE: "test_school",
+        CONF_USERNAME: "test_user",
+        CONF_PASSWORD: "test_password",
+    }
+    config_entry.runtime_data = MagicMock(client=MagicMock())
+    coordinator = HCBDataCoordinator(hass, config_entry)
+
+    config_entry.runtime_data.client.get_school_id = AsyncMock(return_value="school_id")
+    config_entry.runtime_data.client.get_parent_info = AsyncMock(
+        return_value=MagicMock(
+            account_id="parent_id",
+            students=[
+                MagicMock(first_name="Alice", student_id="student1"),
+                MagicMock(first_name="Bob", student_id="student2"),
+            ],
+            times=[MagicMock(id=TimeOfDay.AM)],
+        )
+    )
+    config_entry.runtime_data.client.get_stop_info = AsyncMock(
+        side_effect=[
+            MagicMock(vehicle_location=None, student_stops=[]),
+            MagicMock(vehicle_location=None, student_stops=STUDENT_STOPS),
+        ]
+    )
+
+    await coordinator.async_config_entry_first_refresh()
+
+    assert config_entry.runtime_data.client.get_stop_info.await_count == len(
+        coordinator.data
+    )
+    assert coordinator.data["student2"].am_start_time == time(5, 30)
 
 
 async def test_async_update_data_student_not_moving(hass: HomeAssistant) -> None:
