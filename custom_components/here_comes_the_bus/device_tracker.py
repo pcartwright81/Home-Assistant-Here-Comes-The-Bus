@@ -82,6 +82,18 @@ class HCBTracker(HCBEntity, TrackerEntity):
         """Return the gps accuracy of the device."""
         return 100
 
+    @property
+    def extra_state_attributes(self) -> dict[str, object]:
+        """Record GPS freshness alongside positions for future ETA reconstruction."""
+        return {
+            "eta_speed": self.student.speed,
+            "eta_log_time": self.student.log_time.isoformat()
+            if self.student.log_time
+            else None,
+            "eta_gps_valid": self.student.display_on_map is True
+            and self.student.latent is False,
+        }
+
     @callback
     def _handle_coordinator_update(self) -> None:
         """Handle updated self.student from the coordinator."""

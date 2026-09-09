@@ -33,11 +33,15 @@ def test_message_code_to_bool() -> None:
     assert _message_code_to_bool(None) is None
 
 
-async def test_binary_sensor_setup_entry(hass: HomeAssistant) -> None:
+@pytest.mark.parametrize("eta_enabled", [True, False])
+async def test_binary_sensor_setup_entry(
+    hass: HomeAssistant, *, eta_enabled: bool
+) -> None:
     """Test the async_setup_entry function."""
     entry = MagicMock()
     coordinator = AsyncMock()
     coordinator.async_request_refresh = AsyncMock()
+    coordinator.eta_enabled = eta_enabled
     coordinator.data = {
         "student1": StudentData(first_name="Alice", student_id="student1"),
         "student2": StudentData(first_name="Bob", student_id="student2"),
@@ -52,7 +56,12 @@ async def test_binary_sensor_setup_entry(hass: HomeAssistant) -> None:
 
     # Assert that async_add_entities was called with a list of the expected sensors
     assert async_add_entities.call_count == 1
-    assert len(sensors) == len(ENTITY_DESCRIPTIONS) * len(coordinator.data)
+    expected_per_student = len(ENTITY_DESCRIPTIONS) - (0 if eta_enabled else 2)
+    assert len(sensors) == expected_per_student * len(coordinator.data)
+    if not eta_enabled:
+        assert not {sensor.entity_description.key for sensor in sensors}.intersection(
+            ("stop_visit_inferred", "eta_announcements_allowed")
+        )
 
 
 async def test_binary_sensor_properties() -> None:
