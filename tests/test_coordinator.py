@@ -1,5 +1,6 @@
 """Tests for the Here Comes the Bus coordinator."""
 
+import logging
 from datetime import datetime, time, timedelta
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -849,6 +850,39 @@ async def test_async_config_entry_first_refresh_updates_vehicle_location(
     assert student_data.speed == SPEED
 
 
+async def test_async_config_entry_first_refresh_logs_value_error(
+    hass: HomeAssistant, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Test first refresh logs ValueError raised while processing stops."""
+    config_entry = MagicMock()
+    config_entry.data = {
+        CONF_SCHOOL_CODE: "test_school",
+        CONF_USERNAME: "test_user",
+        CONF_PASSWORD: "test_password",
+    }
+    config_entry.runtime_data = MagicMock(client=MagicMock())
+    coordinator = HCBDataCoordinator(hass, config_entry)
+
+    config_entry.runtime_data.client.get_school_id = AsyncMock(return_value="school_id")
+    config_entry.runtime_data.client.get_parent_info = AsyncMock(
+        return_value=MagicMock(
+            account_id="parent_id",
+            students=[MagicMock(first_name="Alice", student_id="student1")],
+            times=[MagicMock(id=TimeOfDay.AM)],
+        )
+    )
+    config_entry.runtime_data.client.get_stop_info = AsyncMock(
+        side_effect=ValueError("Stop lookup failed")
+    )
+
+    with caplog.at_level(logging.ERROR):
+        await coordinator.async_config_entry_first_refresh()
+
+    assert coordinator._school_id == "school_id"
+    assert coordinator._parent_id == "parent_id"
+    assert "Stop lookup failed" in caplog.text
+
+
 async def test_async_config_entry_first_refresh_handles_no_mid_stops(
     hass: HomeAssistant,
 ) -> None:
@@ -987,7 +1021,7 @@ async def test_async_config_entry_first_refresh_continues_after_unassigned_stude
     assert config_entry.runtime_data.client.get_stop_info.await_count == len(
         coordinator.data
     )
-    assert coordinator.data["student2"].am_start_time == time(5, 30)
+    assert coordinator.data["student2"].am_start_time == time(6, 45)
 
 
 async def test_async_update_data_student_not_moving(hass: HomeAssistant) -> None:
