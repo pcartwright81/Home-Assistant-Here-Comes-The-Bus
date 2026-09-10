@@ -7,13 +7,20 @@ from homeassistant import config_entries, data_entry_flow
 from homeassistant.auth.providers.homeassistant import InvalidAuth
 from homeassistant.const import CONF_PASSWORD, CONF_USERNAME
 from homeassistant.core import HomeAssistant
+from pytest_homeassistant_custom_component.common import MockConfigEntry
 
+from custom_components.here_comes_the_bus import async_reload_entry
 from custom_components.here_comes_the_bus.config_flow import HCBConfigFlowHandler
 from custom_components.here_comes_the_bus.const import (
+    CONF_ARRIVAL_ESTIMATES,
+    CONF_DIRECTIONS,
+    CONF_INFER_STOP,
     CONF_SCHOOL_CODE,
+    CONF_STOP_ANNOUNCEMENTS,
     CONF_UPDATE_INTERVAL,
     DOMAIN,
 )
+from custom_components.here_comes_the_bus.data import StudentData
 
 # Mock data
 MOCK_USER_INPUT = {
@@ -135,3 +142,82 @@ async def test_credentials() -> None:
         )
         result = await handler.test_credentials(user_input)
         assert result is False
+
+
+async def test_inferred_stop_options(hass: HomeAssistant) -> None:
+    """Inference is opt-in and can be enabled through an existing entry's options."""
+    entry = MockConfigEntry(domain=DOMAIN, data=MOCK_USER_INPUT)
+    entry.add_to_hass(hass)
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    assert result["type"] == data_entry_flow.FlowResultType.FORM
+    assert result["data_schema"]({}) == {
+        CONF_ARRIVAL_ESTIMATES: True,
+        CONF_INFER_STOP: False,
+        CONF_STOP_ANNOUNCEMENTS: True,
+    }
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"], user_input={CONF_INFER_STOP: True}
+    )
+    assert result["type"] == data_entry_flow.FlowResultType.CREATE_ENTRY
+    assert entry.options[CONF_INFER_STOP] is True
+
+
+async def test_per_student_direction_options(hass: HomeAssistant) -> None:
+    """Changing one child's direction preserves other children and global options."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        data=MOCK_USER_INPUT,
+        options={CONF_DIRECTIONS: {"other": {"am": "N", "pm": "S"}}},
+    )
+    entry.add_to_hass(hass)
+    entry.runtime_data = MagicMock(
+        coordinator=MagicMock(data={"s": StudentData("Alice", "s")})
+    )
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    assert result["data_schema"]({})["student_id"] == ""
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"],
+        user_input={
+            CONF_INFER_STOP: True,
+            CONF_STOP_ANNOUNCEMENTS: True,
+            "student_id": "s",
+        },
+    )
+    assert result["step_id"] == "directions"
+    assert result["data_schema"]({}) == {"am": "auto", "pm": "auto"}
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"], user_input={"am": "E", "pm": "W"}
+    )
+    assert entry.options[CONF_DIRECTIONS] == {
+        "other": {"am": "N", "pm": "S"},
+        "s": {"am": "E", "pm": "W"},
+    }
+    assert entry.options[CONF_INFER_STOP]
+
+
+async def test_arrival_estimates_toggle_reloads_and_preserves_options(
+    hass: HomeAssistant,
+) -> None:
+    """Disabling and re-enabling estimates reloads with other preferences intact."""
+    directions = {"student1": {"am": "N", "pm": "S"}}
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        data=MOCK_USER_INPUT,
+        options={CONF_DIRECTIONS: directions, CONF_INFER_STOP: True},
+    )
+    entry.add_to_hass(hass)
+    entry.add_update_listener(async_reload_entry)
+    with patch.object(hass.config_entries, "async_reload", return_value=True) as reload:
+        for enabled in (False, True):
+            result = await hass.config_entries.options.async_init(entry.entry_id)
+            assert result["data_schema"]({})[CONF_ARRIVAL_ESTIMATES] is not enabled
+            result = await hass.config_entries.options.async_configure(
+                result["flow_id"], user_input={CONF_ARRIVAL_ESTIMATES: enabled}
+            )
+            await hass.async_block_till_done()
+            assert result["type"] == data_entry_flow.FlowResultType.CREATE_ENTRY
+            assert entry.options[CONF_ARRIVAL_ESTIMATES] is enabled
+            assert entry.options[CONF_DIRECTIONS] == directions
+            assert entry.options[CONF_INFER_STOP] is True
+            reload.assert_awaited_once_with(entry.entry_id)
+            reload.reset_mock()

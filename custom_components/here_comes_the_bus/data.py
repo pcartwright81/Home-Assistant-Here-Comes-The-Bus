@@ -15,6 +15,7 @@ if TYPE_CHECKING:
     from homeassistant.loader import Integration
 
     from .coordinator import HCBDataCoordinator
+    from .eta import Estimate, Stop
 
 type HCBConfigEntry = ConfigEntry[HCBData]
 
@@ -58,3 +59,10 @@ class StudentData:
     pm_start_time: time = field(default_factory=lambda: time(14, 0))
     pm_end_time: time = field(default_factory=lambda: time(16, 0))
     has_mid_stops: bool = False
+    eta_stops: dict[str, Stop] = field(default_factory=dict)
+    stop_eta: float | None = None
+    eta_status: str = "unknown"
+    eta_announcements_allowed: bool = False
+    stop_visit_inferred: bool | None = None
+    eta_estimate: Estimate | None = None
+    eta_period: str | None = None

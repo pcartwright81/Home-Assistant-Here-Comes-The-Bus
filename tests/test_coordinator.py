@@ -10,6 +10,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
 
 from custom_components.here_comes_the_bus.const import (
+    CONF_ARRIVAL_ESTIMATES,
     CONF_SCHOOL_CODE,
     CONF_UPDATE_INTERVAL,
     DOMAIN,
@@ -1023,6 +1024,50 @@ async def test_async_config_entry_first_refresh_continues_after_unassigned_stude
     )
     assert coordinator.data["student2"].am_start_time == time(6, 45)
 
+async def test_async_config_entry_first_refresh_handles_invalid_stops(
+    hass: HomeAssistant,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Log invalid stop data and still initialize each student's ETA state."""
+    hass.config.components.add("recorder")
+    config_entry = MagicMock()
+    config_entry.data = {
+        CONF_SCHOOL_CODE: "test_school",
+        CONF_USERNAME: "test_user",
+        CONF_PASSWORD: "test_password",
+    }
+    client = MagicMock()
+    config_entry.runtime_data = MagicMock(client=client)
+    client.get_school_id = AsyncMock(return_value="school_id")
+    client.get_parent_info = AsyncMock(
+        return_value=MagicMock(
+            account_id="parent_id",
+            students=[
+                MagicMock(first_name="Alice", student_id="student1"),
+                MagicMock(first_name="Bob", student_id="student2"),
+            ],
+            times=[MagicMock(id=TimeOfDay.AM)],
+        )
+    )
+    client.get_stop_info = AsyncMock(
+        return_value=MagicMock(
+            vehicle_location=None,
+            student_stops=[
+                MagicMock(time_of_day_id=TimeOfDay.AM),
+                MagicMock(time_of_day_id=TimeOfDay.PM),
+            ],
+        )
+    )
+    coordinator = HCBDataCoordinator(hass, config_entry)
+
+    await coordinator.async_config_entry_first_refresh()
+
+    assert "Time of day must match for this function to work" in caplog.text
+    assert set(coordinator.data) == {"student1", "student2"}
+    for student in coordinator.data.values():
+        assert student.eta_status == "unknown"
+        assert student.eta_estimate.reason == "no_destination"
+
 
 async def test_async_update_data_student_not_moving(hass: HomeAssistant) -> None:
     """Test the _async_update_data method when student is not moving."""
@@ -1116,3 +1161,45 @@ async def test_async_update_data_student_moving(hass: HomeAssistant) -> None:
     assert config_entry.runtime_data.client.get_stop_info.call_count == 1
     assert data == coordinator.data
     assert coordinator.data["student1"].log_time is not None
+
+
+async def test_disabled_estimates_skip_history_and_keep_reported_data(
+    hass: HomeAssistant,
+) -> None:
+    """Disabled estimates never initialize history, even during active polling."""
+    entry = MagicMock(
+        data={CONF_SCHOOL_CODE: "school", CONF_USERNAME: "user", CONF_PASSWORD: "pass"},
+        options={CONF_ARRIVAL_ESTIMATES: False},
+    )
+    client = MagicMock()
+    entry.runtime_data = MagicMock(client=client)
+    client.get_school_id = AsyncMock(return_value="school_id")
+    client.get_parent_info = AsyncMock(
+        return_value=MagicMock(
+            account_id="parent_id",
+            students=[MagicMock(first_name="Alice", student_id="student1")],
+            times=[MagicMock(id=TimeOfDay.AM)],
+        )
+    )
+    client.get_stop_info = AsyncMock(
+        return_value=MagicMock(vehicle_location=None, student_stops=STUDENT_STOPS)
+    )
+    with (
+        patch("custom_components.here_comes_the_bus.coordinator.History") as history,
+        patch("custom_components.here_comes_the_bus.coordinator.Store") as store,
+    ):
+        coordinator = HCBDataCoordinator(hass, entry)
+        await coordinator.async_config_entry_first_refresh()
+        with patch.object(coordinator, "_student_is_moving", return_value=True):
+            result = await coordinator._async_update_data()
+        with patch.object(coordinator, "_student_is_moving", return_value=False):
+            await coordinator._async_update_data()
+        history.assert_not_called()
+        store.assert_not_called()
+    expected_stop_requests = 2  # Initial refresh and active polling only.
+    assert client.get_stop_info.await_count == expected_stop_requests
+    assert result["student1"].am_start_time == time(6, 45)
+    assert result["student1"].eta_stops == {}
+    assert result["student1"].eta_estimate is None
+    assert coordinator._eta_journeys == {}
+    assert coordinator.eta_history is None

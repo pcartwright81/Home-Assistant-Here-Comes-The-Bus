@@ -16,5 +16,27 @@
       "cannot_connect": "Error connecting to here comes the bus, check your input and try again.",
       "unknown": "Unknown error."
     }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Arrival settings",
+        "description": "Turn off arrival estimates to disable estimated sensors, trip history loading, and pickup/drop-off detection. Other settings below apply while estimates are enabled. Estimated pickup/drop-off does not confirm boarding. Choose a student to adjust their bus direction.",
+        "data": {
+          "arrival_estimates": "Enable arrival estimates",
+          "infer_stop_visits": "Estimate missed pickup/drop-off",
+          "stop_announcements_after_pass": "Pause announcements after the bus passes",
+          "student_id": "Change directions for"
+        }
+      },
+      "directions": {
+        "title": "Bus direction at stop",
+        "description": "Choose the direction the bus travels as it reaches the stop. Use Automatic to learn from past trips.",
+        "data": {
+          "am": "Morning pickup",
+          "pm": "Afternoon drop-off"
+        }
+      }
+    }
   }
 }

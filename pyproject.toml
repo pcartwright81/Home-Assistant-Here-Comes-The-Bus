@@ -66,5 +66,6 @@ max-complexity = 25
 "tests/test_coordinator.py" = ["S101", "SLF001"]
 "tests/test_device_tracker.py" = ["S101", "SLF001"]
 "tests/test_entity.py" = ["S101", "SLF001"]
+"tests/test_eta*.py" = ["S101", "SLF001", "PLR2004"]
 "tests/test_init.py" = ["S101", "SLF001"]
 "tests/test_sensor.py" = ["S101", "SLF001"]

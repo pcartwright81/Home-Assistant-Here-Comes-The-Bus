@@ -10,6 +10,7 @@ from homeassistant.components.binary_sensor import (
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
+from .const import ETA_ENTITY_KEYS
 from .coordinator import HCBDataCoordinator
 from .data import HCBConfigEntry, StudentData
 from .entity import HCBEntity
@@ -55,6 +56,20 @@ ENTITY_DESCRIPTIONS: tuple[HCBBinarySensorEntityDescription, ...] = (
         icon_on="mdi:flag",
         value_fn=lambda x: _message_code_to_bool(x.message_code),
     ),
+    HCBBinarySensorEntityDescription(
+        key="stop_visit_inferred",
+        name="Estimated pickup/drop-off",
+        icon="mdi:bus-stop-uncovered",
+        icon_on="mdi:bus-stop-covered",
+        value_fn=lambda x: x.stop_visit_inferred,
+    ),
+    HCBBinarySensorEntityDescription(
+        key="eta_announcements_allowed",
+        name="Arrival announcements allowed",
+        icon="mdi:volume-off",
+        icon_on="mdi:volume-high",
+        value_fn=lambda x: x.eta_announcements_allowed,
+    ),
 )
 
 
@@ -67,6 +82,8 @@ async def async_setup_entry(
     async_add_entities(
         HCBBinarySensor(entry.runtime_data.coordinator, entity_description, student)
         for entity_description in ENTITY_DESCRIPTIONS
+        if entry.runtime_data.coordinator.eta_enabled
+        or entity_description.key not in ETA_ENTITY_KEYS
         for student in entry.runtime_data.coordinator.data.values()
     )
 
@@ -98,6 +115,19 @@ class HCBBinarySensor(HCBEntity, BinarySensorEntity):
         if self._is_on:
             return self.entity_description.icon_on
         return self.entity_description.icon
+
+    @property
+    def extra_state_attributes(self) -> dict[str, object] | None:
+        """Describe an inferred visit without claiming a confirmed badge scan."""
+        if self.entity_description.key != "stop_visit_inferred":
+            return None
+        return {
+            "period": self.student.eta_period,
+            "assumed_on_bus": (self.student.eta_period == "am")
+            if self.student.stop_visit_inferred is True
+            and self.student.eta_period in ("am", "pm")
+            else None,
+        }
 
     @callback
     def _handle_coordinator_update(self) -> None:
