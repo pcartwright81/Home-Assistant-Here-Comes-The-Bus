@@ -1024,6 +1024,7 @@ async def test_async_config_entry_first_refresh_continues_after_unassigned_stude
     )
     assert coordinator.data["student2"].am_start_time == time(6, 45)
 
+
 async def test_async_config_entry_first_refresh_handles_invalid_stops(
     hass: HomeAssistant,
     caplog: pytest.LogCaptureFixture,

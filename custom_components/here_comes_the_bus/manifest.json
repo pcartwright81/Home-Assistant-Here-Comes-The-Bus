@@ -3,7 +3,7 @@
   "name": "Here Comes The Bus",
   "codeowners": ["@pcartwright81"],
   "config_flow": true,
-  "dependencies": [],
+  "dependencies": ["recorder"],
   "documentation": "https://github.com/pcartwright81/Home-Assistant-Here-Comes-The-Bus",
   "iot_class": "cloud_polling",
   "issue_tracker": "https://github.com/pcartwright81/Home-Assistant-Here-Comes-The-Bus/issues",
