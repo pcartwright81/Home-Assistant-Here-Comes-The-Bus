@@ -6,7 +6,7 @@ version = "v1.0.5"
 requires-python = ">=3.14"
 dependencies = [
     "pip==26.2.1",
-    "homeassistant==2026.9.3",
+    "homeassistant==2026.10.0",
     "hcb-soap-client==0.1.5",
 ]
 
@@ -15,12 +15,12 @@ include = ["custom_components*"]
 
 [project.optional-dependencies]
 test = [
-    "pytest-homeassistant-custom-component==0.13.366",
+    "pytest-homeassistant-custom-component==0.13.371",
     "pytest-freezer==0.4.9",
-    "pycares<5.0.2",
+    "pycares<5.1.1",
     "colorlog==6.12.0",
 ]
-dev = ["ruff==0.16.9", "debugpy==1.8.22"]
+dev = ["ruff==0.16.10", "debugpy==1.8.22"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
