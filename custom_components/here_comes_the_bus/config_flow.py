@@ -13,8 +13,10 @@ from homeassistant.core import callback
 from .const import (
     CONF_DIRECTIONS,
     CONF_SCHOOL_CODE,
+    CONF_START_TIME_OFFSET,
     CONF_UPDATE_INTERVAL,
     DEFAULT_ETA_OPTIONS,
+    DEFAULT_START_TIME_OFFSET,
     DOMAIN,
     HERE_COMES_THE_BUS,
     LOGGER,
@@ -39,6 +41,9 @@ DATA_SCHEMA = vol.Schema(
         vol.Required(CONF_PASSWORD): cv.string,
         vol.Required(CONF_SCHOOL_CODE): cv.string,
         vol.Optional(CONF_UPDATE_INTERVAL, default=20): cv.positive_int,
+        vol.Optional(
+            CONF_START_TIME_OFFSET, default=DEFAULT_START_TIME_OFFSET
+        ): int,
     }
 )
 
@@ -118,6 +123,17 @@ class HCBOptionsFlow(config_entries.OptionsFlow):
             ): cv.boolean
             for key, default in DEFAULT_ETA_OPTIONS.items()
         }
+        schema[
+            vol.Optional(
+                CONF_START_TIME_OFFSET,
+                default=self.config_entry.options.get(
+                    CONF_START_TIME_OFFSET,
+                    self.config_entry.data.get(
+                        CONF_START_TIME_OFFSET, DEFAULT_START_TIME_OFFSET
+                    ),
+                ),
+            )
+        ] = int
         runtime = getattr(self.config_entry, "runtime_data", None)
         students = getattr(getattr(runtime, "coordinator", None), "data", {})
         if students:

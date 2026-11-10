@@ -20,7 +20,9 @@ CONF_INFER_STOP = "infer_stop_visits"
 CONF_STOP_ANNOUNCEMENTS = "stop_announcements_after_pass"
 CONF_DIRECTIONS = "stop_directions"
 CONF_ARRIVAL_ESTIMATES = "arrival_estimates"
+CONF_START_TIME_OFFSET = "start_time_offset"
 
+DEFAULT_START_TIME_OFFSET = -30
 DEFAULT_ETA_OPTIONS = {
     CONF_ARRIVAL_ESTIMATES: True,
     CONF_INFER_STOP: False,
