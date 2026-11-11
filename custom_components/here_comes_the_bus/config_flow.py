@@ -41,9 +41,7 @@ DATA_SCHEMA = vol.Schema(
         vol.Required(CONF_PASSWORD): cv.string,
         vol.Required(CONF_SCHOOL_CODE): cv.string,
         vol.Optional(CONF_UPDATE_INTERVAL, default=20): cv.positive_int,
-        vol.Optional(
-            CONF_START_TIME_OFFSET, default=DEFAULT_START_TIME_OFFSET
-        ): int,
+        vol.Optional(CONF_START_TIME_OFFSET, default=DEFAULT_START_TIME_OFFSET): int,
     }
 )
 

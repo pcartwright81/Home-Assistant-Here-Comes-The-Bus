@@ -393,9 +393,12 @@ def test_get_start_time(hass: HomeAssistant) -> None:
     ]
 
     # Test with default delta_minutes (-30)
-    assert coordinator._get_start_time(stops) == (
-        datetime.combine(dt_util.now().date(), time(7, 15)) - timedelta(minutes=30)
-    ).time()
+    assert (
+        coordinator._get_start_time(stops)
+        == (
+            datetime.combine(dt_util.now().date(), time(7, 15)) - timedelta(minutes=30)
+        ).time()
+    )
 
     # Test with configured start_time_offset in options
     coordinator_with_options = HCBDataCoordinator(
@@ -405,9 +408,12 @@ def test_get_start_time(hass: HomeAssistant) -> None:
             data={"update_interval": 20},
         ),
     )
-    assert coordinator_with_options._get_start_time(stops) == (
-        datetime.combine(dt_util.now().date(), time(7, 15)) - timedelta(minutes=45)
-    ).time()
+    assert (
+        coordinator_with_options._get_start_time(stops)
+        == (
+            datetime.combine(dt_util.now().date(), time(7, 15)) - timedelta(minutes=45)
+        ).time()
+    )
 
     # Test with configured start_time_offset in data fallback
     coordinator_with_data = HCBDataCoordinator(
@@ -417,14 +423,49 @@ def test_get_start_time(hass: HomeAssistant) -> None:
             data={"update_interval": 20, CONF_START_TIME_OFFSET: -20},
         ),
     )
-    assert coordinator_with_data._get_start_time(stops) == (
-        datetime.combine(dt_util.now().date(), time(7, 15)) - timedelta(minutes=20)
-    ).time()
+    assert (
+        coordinator_with_data._get_start_time(stops)
+        == (
+            datetime.combine(dt_util.now().date(), time(7, 15)) - timedelta(minutes=20)
+        ).time()
+    )
+
+    # Test invalid start_time_offset in options falling back to data, then default
+    coordinator_invalid_options = HCBDataCoordinator(
+        hass=hass,
+        config_entry=MagicMock(
+            options={CONF_START_TIME_OFFSET: "invalid"},
+            data={"update_interval": 20, CONF_START_TIME_OFFSET: -20},
+        ),
+    )
+    assert (
+        coordinator_invalid_options._get_start_time(stops)
+        == (
+            datetime.combine(dt_util.now().date(), time(7, 15)) - timedelta(minutes=20)
+        ).time()
+    )
+
+    coordinator_invalid_both = HCBDataCoordinator(
+        hass=hass,
+        config_entry=MagicMock(
+            options={CONF_START_TIME_OFFSET: None},
+            data={"update_interval": 20, CONF_START_TIME_OFFSET: "bad"},
+        ),
+    )
+    assert (
+        coordinator_invalid_both._get_start_time(stops)
+        == (
+            datetime.combine(dt_util.now().date(), time(7, 15)) - timedelta(minutes=30)
+        ).time()
+    )
 
     # Test with explicit delta_minutes parameter
-    assert coordinator._get_start_time(stops, delta_minutes=-15) == (
-        datetime.combine(dt_util.now().date(), time(7, 15)) - timedelta(minutes=15)
-    ).time()
+    assert (
+        coordinator._get_start_time(stops, delta_minutes=-15)
+        == (
+            datetime.combine(dt_util.now().date(), time(7, 15)) - timedelta(minutes=15)
+        ).time()
+    )
 
 
 def test_update_stops_no_stops(hass: HomeAssistant) -> None:
