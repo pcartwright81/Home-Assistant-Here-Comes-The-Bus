@@ -18,9 +18,11 @@ from .const import (
     CONF_DIRECTIONS,
     CONF_INFER_STOP,
     CONF_SCHOOL_CODE,
+    CONF_START_TIME_OFFSET,
     CONF_STOP_ANNOUNCEMENTS,
     CONF_UPDATE_INTERVAL,
     DEFAULT_ETA_OPTIONS,
+    DEFAULT_START_TIME_OFFSET,
     DOMAIN,
     LOGGER,
 )
@@ -585,9 +587,27 @@ class HCBDataCoordinator(DataUpdateCoordinator):
         dt_combined = datetime.combine(dummy_date, base_time)
         return (dt_combined + timedelta(minutes=delta_minutes)).time()
 
-    def _get_start_time(self, stops: list[StudentStop]) -> time:
+    @property
+    def _start_time_offset(self) -> int:
+        """Return the configured start time offset in minutes."""
+        for source in (
+            getattr(self.config_entry, "options", None),
+            getattr(self.config_entry, "data", None),
+        ):
+            if isinstance(source, dict) and CONF_START_TIME_OFFSET in source:
+                try:
+                    return int(source[CONF_START_TIME_OFFSET])
+                except (ValueError, TypeError):
+                    pass
+        return DEFAULT_START_TIME_OFFSET
+
+    def _get_start_time(
+        self, stops: list[StudentStop], delta_minutes: int | None = None
+    ) -> time:
         earliest = min(stop.start_time for stop in stops)
-        return self._adjust_time(earliest, -30)
+        if delta_minutes is None:
+            delta_minutes = self._start_time_offset
+        return self._adjust_time(earliest, delta_minutes)
 
     def _get_end_time(self, stops: list[StudentStop]) -> time:
         latest = max(stop.start_time for stop in stops)

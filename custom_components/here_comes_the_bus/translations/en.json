@@ -8,7 +8,8 @@
           "school_code": "School Code",
           "add_device_tracker": "Add Device Tracker",
           "add_sensors": "Add Sensors",
-          "update_interval": "Update Interval (s)"
+          "update_interval": "Update Interval (s)",
+          "start_time_offset": "Start time offset (minutes)"
         }
       }
     },
@@ -26,6 +27,7 @@
           "arrival_estimates": "Enable arrival estimates",
           "infer_stop_visits": "Estimate missed pickup/drop-off",
           "stop_announcements_after_pass": "Pause announcements after the bus passes",
+          "start_time_offset": "Start time offset (minutes)",
           "student_id": "Change directions for"
         }
       },

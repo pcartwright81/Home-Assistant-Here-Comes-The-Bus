@@ -16,6 +16,7 @@ from custom_components.here_comes_the_bus.const import (
     CONF_DIRECTIONS,
     CONF_INFER_STOP,
     CONF_SCHOOL_CODE,
+    CONF_START_TIME_OFFSET,
     CONF_STOP_ANNOUNCEMENTS,
     CONF_UPDATE_INTERVAL,
     DOMAIN,
@@ -28,6 +29,7 @@ MOCK_USER_INPUT = {
     CONF_PASSWORD: "test_password",
     CONF_SCHOOL_CODE: "test_school_code",
     CONF_UPDATE_INTERVAL: 20,
+    CONF_START_TIME_OFFSET: -30,
 }
 
 
@@ -154,12 +156,27 @@ async def test_inferred_stop_options(hass: HomeAssistant) -> None:
         CONF_ARRIVAL_ESTIMATES: True,
         CONF_INFER_STOP: False,
         CONF_STOP_ANNOUNCEMENTS: True,
+        CONF_START_TIME_OFFSET: -30,
     }
     result = await hass.config_entries.options.async_configure(
         result["flow_id"], user_input={CONF_INFER_STOP: True}
     )
     assert result["type"] == data_entry_flow.FlowResultType.CREATE_ENTRY
     assert entry.options[CONF_INFER_STOP] is True
+
+
+async def test_start_time_offset_options(hass: HomeAssistant) -> None:
+    """Start time offset can be configured through an existing entry's options."""
+    updated_offset = -45
+    entry = MockConfigEntry(domain=DOMAIN, data=MOCK_USER_INPUT)
+    entry.add_to_hass(hass)
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    assert result["type"] == data_entry_flow.FlowResultType.FORM
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"], user_input={CONF_START_TIME_OFFSET: updated_offset}
+    )
+    assert result["type"] == data_entry_flow.FlowResultType.CREATE_ENTRY
+    assert entry.options[CONF_START_TIME_OFFSET] == updated_offset
 
 
 async def test_per_student_direction_options(hass: HomeAssistant) -> None:
