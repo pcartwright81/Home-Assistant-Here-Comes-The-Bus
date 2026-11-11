@@ -167,15 +167,16 @@ async def test_inferred_stop_options(hass: HomeAssistant) -> None:
 
 async def test_start_time_offset_options(hass: HomeAssistant) -> None:
     """Start time offset can be configured through an existing entry's options."""
+    updated_offset = -45
     entry = MockConfigEntry(domain=DOMAIN, data=MOCK_USER_INPUT)
     entry.add_to_hass(hass)
     result = await hass.config_entries.options.async_init(entry.entry_id)
     assert result["type"] == data_entry_flow.FlowResultType.FORM
     result = await hass.config_entries.options.async_configure(
-        result["flow_id"], user_input={CONF_START_TIME_OFFSET: -45}
+        result["flow_id"], user_input={CONF_START_TIME_OFFSET: updated_offset}
     )
     assert result["type"] == data_entry_flow.FlowResultType.CREATE_ENTRY
-    assert entry.options[CONF_START_TIME_OFFSET] == -45
+    assert entry.options[CONF_START_TIME_OFFSET] == updated_offset
 
 
 async def test_per_student_direction_options(hass: HomeAssistant) -> None:
